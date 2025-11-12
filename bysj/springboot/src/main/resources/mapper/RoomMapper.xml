@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.mapper.RoomMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.springboot.model.Room">
+        <id column="room_id" property="roomId" jdbcType="INTEGER"/>
+        <result column="room_name" property="roomName" jdbcType="VARCHAR"/>
+        <result column="room_type" property="roomType" jdbcType="VARCHAR"/>
+        <result column="max_players" property="maxPlayers" jdbcType="INTEGER"/>
+        <result column="min_players" property="minPlayers" jdbcType="INTEGER"/>
+        <result column="price_per_hour" property="pricePerHour" jdbcType="DECIMAL"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="image_path" property="imagePath" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="store_id" property="storeId" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <!-- 查询所有房间 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM rooms
+    </select>
+
+    <!-- 根据ID查询房间 -->
+    <select id="findById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT * FROM rooms WHERE room_id = #{roomId}
+    </select>
+
+    <!-- 新增房间 -->
+    <insert id="insert" parameterType="com.example.springboot.model.Room" useGeneratedKeys="true" keyProperty="roomId">
+        INSERT INTO rooms(room_name, room_type, max_players, min_players, price_per_hour, description, image_path, status, password, store_id)
+        VALUES(#{roomName}, #{roomType}, #{maxPlayers}, #{minPlayers}, #{pricePerHour}, #{description}, #{imagePath}, #{status}, #{password}, #{storeId})
+    </insert>
+
+    <!-- 更新房间 -->
+    <update id="update" parameterType="com.example.springboot.model.Room">
+        UPDATE rooms SET
+        room_name=#{roomName},
+        room_type=#{roomType},
+        max_players=#{maxPlayers},
+        min_players=#{minPlayers},
+        price_per_hour=#{pricePerHour},
+        description=#{description},
+        image_path=#{imagePath},
+        status=#{status},
+        password=#{password},
+        store_id=#{storeId}
+        WHERE room_id=#{roomId}
+    </update>
+
+    <!-- 删除房间 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM rooms WHERE room_id = #{roomId}
+    </delete>
+
+    <!-- 查询可用房间(状态为空闲) -->
+    <select id="findAvailableRooms" resultMap="BaseResultMap">
+        SELECT * FROM rooms WHERE status = '空闲' AND store_id = #{storeId}
+    </select>
+
+    <!-- 根据状态查询房间 -->
+    <select id="findByStatus" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT * FROM rooms WHERE status = #{status}
+    </select>
+
+    <!-- 更新房间状态 -->
+    <update id="updateStatus">
+        UPDATE rooms SET
+        status = #{status}
+        WHERE room_id = #{roomId}
+    </update>
+
+    <!-- 根据店铺ID查询房间 -->
+    <select id="findByStoreId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT * FROM rooms WHERE store_id = #{storeId}
+    </select>
+</mapper>

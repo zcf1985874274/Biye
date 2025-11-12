@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "serve": "cd vue && vue-cli-service serve",
+    "build": "cd vue && vue-cli-service build"
+  },
+  "dependencies": {
+    "echarts": "^6.0.0",
+    "vuex": "^3.6.2"
+  },
+  "devDependencies": {
+    "sass": "^1.89.2",
+    "sass-loader": "^10.5.2",
+    "vue-loader": "^15.11.1"
+  }
+}

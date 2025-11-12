@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.mapper.UserMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.springboot.model.User">
+        <id column="user_id" property="userId" />
+        <result column="username" property="username" />
+        <result column="password" property="password" />
+        <result column="email" property="email" />
+        <result column="phone" property="phone" />
+        <result column="registration_date" property="registrationDate" />
+        <result column="last_login" property="lastLogin" />
+        <result column="status" property="status" />
+    </resultMap>
+
+    <!-- 插入新用户 -->
+    <insert id="insert" parameterType="com.example.springboot.model.User" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO users (
+            username, password, email, phone, registration_date, last_login, status
+        ) VALUES (
+            #{username}, #{password}, #{email}, #{phone}, #{registrationDate}, #{lastLogin}, #{status}
+        )
+    </insert>
+
+    <!-- 根据用户ID查询用户 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE user_id = #{userId}
+    </select>
+
+    <!-- 根据用户名查询用户 -->
+    <select id="findByUsername" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE username = #{username}
+    </select>
+
+    <!-- 更新用户状态和最后登录时间 -->
+    <update id="updateStatus">
+        UPDATE users SET status = #{status}, last_login = #{lastLogin} WHERE user_id = #{userId}
+    </update>
+
+    <!-- 更新用户信息 -->
+    <update id="update" parameterType="com.example.springboot.model.User">
+        UPDATE users
+        <set>
+            <if test="username != null">username = #{username},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="lastLogin != null">last_login = #{lastLogin},</if>
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 查询所有用户 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM users
+    </select>
+
+    <!-- 根据ID删除用户 -->
+    <delete id="deleteById">
+        DELETE FROM users WHERE user_id = #{userId}
+    </delete>
+
+
+</mapper>

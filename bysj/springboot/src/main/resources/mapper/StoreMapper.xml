@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.mapper.StoreMapper">
+    <resultMap id="storeResultMap" type="com.example.springboot.model.Store">
+        <id property="storeId" column="store_id" />
+        <result property="storeName" column="store_name" />
+        <result property="storeAddress" column="store_address" />
+    </resultMap>
+
+    <select id="findAll" resultMap="storeResultMap">
+        SELECT * FROM stores
+    </select>
+
+    <select id="findById" resultMap="storeResultMap" parameterType="Integer">
+        SELECT * FROM stores WHERE store_id = #{storeId}
+    </select>
+
+    <insert id="insert" parameterType="com.example.springboot.model.Store">
+        INSERT INTO stores (store_name, store_address)
+        VALUES (#{storeName}, #{storeAddress})
+    </insert>
+
+    <update id="update" parameterType="com.example.springboot.model.Store">
+        UPDATE stores
+        SET store_name = #{storeName}, store_address = #{storeAddress}
+        WHERE store_id = #{storeId}
+    </update>
+
+    <delete id="delete" parameterType="Integer">
+        DELETE FROM stores WHERE store_id = #{storeId}
+    </delete>
+</mapper>

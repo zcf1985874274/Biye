@@ -1,0 +1,30 @@
+// 主题色
+$--color-primary: #409EFF;
+
+// 菜单背景色
+$menuBg:#304156;
+$subMenuBg:#1f2d3d;
+$menuHover:#263445;
+
+// 菜单文本颜色
+$menuText:#bfcbd9;
+$menuActiveText:#409EFF;
+
+// 侧边栏宽度
+$sideBarWidth: 210px;
+
+// 导航栏高度
+$navBarHeight: 50px;
+
+// 标签视图高度
+$tagsViewHeight: 34px;
+
+// 内容区域背景色
+$appMainBg: #f0f2f5;
+
+// 过渡动画
+:export {
+  menuBg: $menuBg;
+  menuText: $menuText;
+  menuActiveText: $menuActiveText;
+}

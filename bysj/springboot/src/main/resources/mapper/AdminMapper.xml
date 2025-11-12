@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.mapper.AdminMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.springboot.model.Admin">
+        <id column="admin_id" property="adminId" jdbcType="INTEGER"/>
+        <result column="username" property="username" jdbcType="VARCHAR"/>
+        <result column="password" property="password" jdbcType="VARCHAR"/>
+        <result column="role" property="role" jdbcType="VARCHAR"/>
+        <result column="last_login" property="lastLogin" jdbcType="TIMESTAMP"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="store_id" property="storeId" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <!-- 查询所有管理员 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM admins
+    </select>
+
+    <!-- 根据ID查询管理员 -->
+    <select id="findById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT * FROM admins WHERE admin_id = #{adminId}
+    </select>
+
+    <!-- 新增管理员 -->
+    <insert id="insert" parameterType="com.example.springboot.model.Admin" useGeneratedKeys="true" keyProperty="adminId">
+        INSERT INTO admins(username, password, role, last_login, status, store_id)
+        VALUES(#{username}, #{password}, #{role}, #{lastLogin}, #{status}, #{storeId})
+    </insert>
+
+    <!-- 更新管理员 -->
+    <update id="update" parameterType="com.example.springboot.model.Admin">
+        UPDATE admins SET
+        username=#{username},
+        password=#{password},
+        role=#{role},
+        last_login=#{lastLogin},
+        status=#{status},
+        store_id=#{storeId}
+        WHERE admin_id=#{adminId}
+    </update>
+
+    <!-- 删除管理员 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM admins WHERE admin_id = #{adminId}
+    </delete>
+
+    <!-- 根据用户名查询管理员 -->
+    <select id="findByUsername" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT * FROM admins WHERE username = #{username}
+    </select>
+
+    <!-- 更新登录状态 -->
+    <update id="updateLoginStatus">
+        UPDATE admins SET
+        status = #{status},
+        last_login = #{lastLogin}
+        WHERE admin_id = #{adminId}
+    </update>
+
+</mapper>

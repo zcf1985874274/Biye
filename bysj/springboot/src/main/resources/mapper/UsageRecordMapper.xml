@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.mapper.UsageRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.springboot.model.UsageRecord">
+        <id column="record_id" property="recordId" jdbcType="INTEGER"/>
+        <result column="room_id" property="roomId" jdbcType="INTEGER"/>
+        <result column="user_id" property="userId" jdbcType="INTEGER"/>
+        <result column="start_time" property="startTime" jdbcType="TIMESTAMP"/>
+        <result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
+        <result column="total_price" property="totalPrice" jdbcType="DECIMAL"/>
+        <result column="room_name" property="roomName" jdbcType="VARCHAR"/>
+        <result column="password" property="roomPassword" jdbcType="INTEGER"/>
+        <result column="store_id" property="storeId" jdbcType="INTEGER"/>
+        <result column="store_name" property="storeName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- 查询所有记录 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT ur.*, r.room_name, r.password, s.store_name
+        FROM usage_records ur
+        LEFT JOIN rooms r ON ur.room_id = r.room_id
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+    </select>
+
+    <!-- 根据ID查询记录 -->
+    <select id="findById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT ur.*, r.room_name, r.password, s.store_name
+        FROM usage_records ur
+        LEFT JOIN rooms r ON ur.room_id = r.room_id
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE ur.record_id = #{recordId}
+    </select>
+
+    <!-- 新增记录 -->
+    <insert id="insert" parameterType="com.example.springboot.model.UsageRecord" useGeneratedKeys="true" keyProperty="recordId">
+        INSERT INTO usage_records(room_id, user_id, start_time, end_time, total_price, store_id)
+        VALUES(#{roomId}, #{userId}, #{startTime}, #{endTime}, #{totalPrice}, #{storeId})
+    </insert>
+
+    <!-- 更新记录 -->
+    <update id="update" parameterType="com.example.springboot.model.UsageRecord">
+        UPDATE usage_records SET
+        room_id=#{roomId},
+        user_id=#{userId},
+        start_time=#{startTime},
+        end_time=#{endTime},
+        total_price=#{totalPrice},
+        store_id=#{storeId}
+        WHERE record_id=#{recordId}
+    </update>
+
+    <!-- 删除记录 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM usage_records WHERE record_id = #{recordId}
+    </delete>
+
+    <!-- 根据房间ID查询记录 -->
+    <select id="findByRoomId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT ur.*, r.room_name, r.password, s.store_name
+        FROM usage_records ur
+        LEFT JOIN rooms r ON ur.room_id = r.room_id
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE ur.room_id = #{roomId}
+    </select>
+
+    <!-- 根据用户ID查询记录 -->
+    <select id="findByUserId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT ur.*, r.room_name, r.password, s.store_name
+        FROM usage_records ur
+        LEFT JOIN rooms r ON ur.room_id = r.room_id
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE ur.user_id = #{userId}
+    </select>
+
+    <!-- 根据用户ID、年份和月份查询记录 -->
+    <select id="findByUserIdAndDate" resultMap="BaseResultMap">
+        SELECT ur.*, r.room_name, r.password, s.store_name
+        FROM usage_records ur 
+        LEFT JOIN rooms r ON ur.room_id = r.room_id 
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE ur.user_id = #{userId}
+        <if test="year != null">
+            AND YEAR(ur.start_time) = #{year}
+        </if>
+        <if test="month != null">
+            AND MONTH(ur.start_time) = #{month}
+        </if>
+    </select>
+
+    <!-- 根据房间ID查询最新的使用记录 -->
+    <select id="findLatestByRoomId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT ur.*, r.room_name, r.password, s.store_name
+        FROM usage_records ur
+        LEFT JOIN rooms r ON ur.room_id = r.room_id
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE ur.room_id = #{roomId} 
+        ORDER BY ur.end_time DESC 
+        LIMIT 1
+    </select>
+
+    <!-- 查询每日盈利数据 -->
+    <select id="getDailyProfit" resultType="java.util.Map">
+        SELECT 
+            DATE(ur.start_time) AS date, 
+            ur.store_id AS storeId,
+            s.store_name AS storeName,
+            r.room_name AS roomName,
+            SUM(ur.total_price) AS totalProfit
+        FROM usage_records ur
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        LEFT JOIN rooms r ON ur.room_id = r.room_id
+        <where>
+            <if test="storeId != null">
+                AND ur.store_id = #{storeId}
+            </if>
+            <if test="startDate != null">
+                AND DATE(ur.start_time) &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(ur.start_time) &lt;= #{endDate}
+            </if>
+        </where>
+        GROUP BY DATE(ur.start_time), ur.store_id, s.store_name, r.room_name
+        ORDER BY DATE(ur.start_time) DESC, ur.store_id
+    </select>
+
+    <!-- 查询每月盈利数据 -->
+    <select id="getMonthlyProfit" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(ur.start_time, '%Y-%m') AS month, 
+            ur.store_id AS storeId,
+            s.store_name AS storeName,
+            SUM(ur.total_price) AS totalProfit
+        FROM usage_records ur
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE 1=1
+        <if test="storeId != null">
+            AND ur.store_id = #{storeId}
+        </if>
+        <if test="year != null">
+            AND YEAR(ur.start_time) = #{year}
+        </if>
+        GROUP BY DATE_FORMAT(ur.start_time, '%Y-%m'), ur.store_id, s.store_name
+        ORDER BY DATE_FORMAT(ur.start_time, '%Y-%m') DESC, ur.store_id
+    </select>
+
+    <!-- 查询每年盈利数据 -->
+    <select id="getYearlyProfit" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(ur.start_time, '%Y') AS year, 
+            ur.store_id AS storeId,
+            s.store_name AS storeName,
+            SUM(ur.total_price) AS totalProfit
+        FROM usage_records ur
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE 1=1
+        <if test="storeId != null">
+            AND ur.store_id = #{storeId}
+        </if>
+        GROUP BY DATE_FORMAT(ur.start_time, '%Y'), ur.store_id, s.store_name
+        ORDER BY DATE_FORMAT(ur.start_time, '%Y') DESC, ur.store_id
+    </select>
+
+    <!-- 根据店铺ID查询记录 -->
+    <select id="findByStoreId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT ur.*, r.room_name, r.password, s.store_name
+        FROM usage_records ur
+        LEFT JOIN rooms r ON ur.room_id = r.room_id
+        LEFT JOIN stores s ON ur.store_id = s.store_id
+        WHERE ur.store_id = #{storeId}
+    </select>
+</mapper>
