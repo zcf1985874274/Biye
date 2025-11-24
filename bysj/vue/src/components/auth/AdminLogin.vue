@@ -165,9 +165,8 @@ export default {
         .then((response) => {
           this.$message.success('管理员登录成功');
           
-          // 设置 storeId 和 role
-          this.$store.commit('admin/SET_STORE_ID', this.loginForm.storeId);
-          this.$store.commit('admin/SET_ADMIN_ROLE', response.data.role); // 假设后端返回 role 字段
+          // 登录成功后，adminInfo已经在store中设置好了，包含role信息
+          console.log('登录成功，当前adminInfo:', this.$store.getters.adminInfo);
           
           // 跳转到管理员首页
           this.$router.push('/adminhome');

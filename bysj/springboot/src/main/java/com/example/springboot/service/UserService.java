@@ -53,6 +53,14 @@ public interface UserService {
      * @return 退出结果
      */
     Result<Void> logout(String username);
+    
+    /**
+     * 重置用户密码
+     * @param username 用户名
+     * @param newPassword 新密码
+     * @return 重置结果
+     */
+    Result<Void> resetPassword(String username, String newPassword);
 
     /**
      * 获取所有用户

@@ -594,20 +594,6 @@ export default {
         }
       });
     },
-    handleTabChange(tabName) {
-      this.activeTab = tabName;
-      if (this.showChart) {
-        this.$nextTick(() => {
-          if (tabName === 'daily') {
-            this.updateDailyChart();
-          } else if (tabName === 'monthly') {
-            this.updateMonthlyChart();
-          } else if (tabName === 'yearly') {
-            this.updateYearlyChart();
-          }
-        });
-      }
-    },
   },
 };
 </script>

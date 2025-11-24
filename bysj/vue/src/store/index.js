@@ -11,5 +11,14 @@ export default new Vuex.Store({
     user,
     admin,
     room
+  },
+  getters: {
+    token: state => state.user.token,
+    username: state => state.user.username,
+    userInfo: state => state.user.userInfo,
+    adminToken: state => state.admin.adminToken,
+    adminInfo: state => state.admin.adminInfo,
+    adminUsername: state => state.admin.adminInfo?.username,
+    storeId: state => state.admin.storeId
   }
 })

@@ -61,6 +61,11 @@
     <delete id="deleteById">
         DELETE FROM users WHERE user_id = #{userId}
     </delete>
+    
+    <!-- 更新用户密码 -->
+    <update id="updatePassword">
+        UPDATE users SET password = #{password} WHERE user_id = #{userId}
+    </update>
 
 
 </mapper>

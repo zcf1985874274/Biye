@@ -28,6 +28,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import RoomList from './RoomList.vue'
+import roomStatusManager from '@/utils/roomStatusManager'
 
 export default {
   name: 'Home',
@@ -36,7 +37,8 @@ export default {
   },
   data() {
     return {
-      showDropdown: false
+      showDropdown: false,
+      roomStatusListenerId: `Home_${Date.now()}`, // 唯一监听器ID
     };
   },
   computed: {
@@ -48,6 +50,14 @@ export default {
       this.$message.error('获取用户信息失败，请重新登录')
       this.handleLogout()
     })
+    
+    // 设置房间状态监听器
+    this.setupRoomStatusListener()
+  },
+  
+  beforeDestroy() {
+    // 移除房间状态监听器
+    roomStatusManager.removeListener(this.roomStatusListenerId)
   },
   methods: {
     async handleLogout() {
@@ -83,6 +93,18 @@ export default {
       // 这里可以添加预订逻辑，比如跳转到预订页面或显示预订对话框
       console.log('预订房间:', room)
       this.$message.success(`已预订房间: ${room.roomName}`)
+    },
+    
+    // 设置房间状态监听器
+    setupRoomStatusListener() {
+      roomStatusManager.addListener(this.roomStatusListenerId, (event) => {
+        console.log('Home组件收到房间状态更新:', event)
+        
+        if (event.type === 'ROOM_STATUS_UPDATE') {
+          // 可以在这里添加主页特定的房间状态更新逻辑
+          // 比如更新统计信息、显示通知等
+        }
+      })
     }
   }
 }

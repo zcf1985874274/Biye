@@ -75,6 +75,7 @@ import BookingDialog from './BookingDialog.vue'
 import request from '@/utils/request'
 import { getRoomsByStoreId} from '@/api/room'
 import { getAllStores } from '@/api/store'
+import roomStatusManager from '@/utils/roomStatusManager'
 export default {
   name: 'RoomList',
   components: {
@@ -90,11 +91,34 @@ export default {
       pageSize: 10,
       selectedRoom: null,
       totalRooms: 0,
+      pollingTimer: null, // 定时器
+      pollingInterval: 10000, // 10秒轮询一次
+      isVisible: true, // 页面是否可见
+      roomStatusListenerId: `RoomList_${Date.now()}`, // 唯一监听器ID
     }
   },
   created() {
     this.fetchStores()
     this.fetchRooms()
+    this.startPolling()
+    this.setupRoomStatusListener()
+  },
+  
+  mounted() {
+    // 监听页面可见性变化
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
+    window.addEventListener('focus', this.handleWindowFocus)
+    window.addEventListener('blur', this.handleWindowBlur)
+  },
+  
+  beforeDestroy() {
+    this.stopPolling()
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+    window.removeEventListener('focus', this.handleWindowFocus)
+    window.removeEventListener('blur', this.handleWindowBlur)
+    
+    // 移除房间状态监听器
+    roomStatusManager.removeListener(this.roomStatusListenerId)
   },
 
 
@@ -134,7 +158,8 @@ export default {
               description: room.description || '',
               imagePath: room.imagePath || 'https://via.placeholder.com/300x200',
               status: statusMap[room.status] || 'occupied',
-              password: room.password || ''
+              password: room.password || '',
+              storeId: room.storeId || 1 // 确保包含storeId，默认为1
             };
           }));
         } else {
@@ -170,7 +195,7 @@ export default {
             imagePath: room.imagePath || 'https://via.placeholder.com/300x200',
             status: statusMap[room.status] || 'occupied',
             password: room.password || '',
-            storeId: room.storeId || 0
+            storeId: room.storeId || this.selectedStoreId || 1 // 确保包含storeId
           };
         }));
       }).catch(error => {
@@ -231,6 +256,17 @@ export default {
         const startTime = new Date();
         const endTime = new Date(startTime.getTime() + bookingInfo.hours * 60 * 60 * 1000);
 
+        // 获取房间信息以获取storeId
+        const room = this.rooms.find(r => r.roomId === bookingInfo.roomId);
+        const storeId = bookingInfo.storeId || room?.storeId || 1; // 默认为1如果找不到
+        
+        console.log('预订信息:', {
+          roomId: bookingInfo.roomId,
+          userId: userId,
+          storeId: storeId,
+          room: room
+        });
+
         // 3. 调用API创建使用记录
         const recordResponse = await request({
           url: '/api/usage-records',
@@ -243,22 +279,22 @@ export default {
             userId: userId,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            hours: bookingInfo.hours,
             totalPrice: bookingInfo.totalPrice,
-            storeId: bookingInfo.storeId || this.rooms.find(room => room.roomId === bookingInfo.roomId)?.storeId// 确保传递 storeId
+            storeId: storeId
           }
         });
+
+        if (!recordResponse || recordResponse.code !== 200) {
+          throw new Error(recordResponse?.message || '创建使用记录失败');
+        }
 
         // 4. 更新房间状态为"使用中"
         const updateResponse = await request({
           url: `/api/rooms/${bookingInfo.roomId}/status`,
           method: 'patch',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          data: JSON.stringify({
+          data: {
             status: '使用中'
-          })
+          }
         });
 
         if (!updateResponse || updateResponse.code !== 200) {
@@ -267,16 +303,179 @@ export default {
 
         // 5. 刷新房间列表
         await this.fetchRooms();
-
-        if (!recordResponse || recordResponse.code !== 200) {
-          throw new Error(recordResponse?.message || '创建使用记录失败');
-        }
+        
+        // 6. 通知其他用户更新房间状态
+        this.notifyRoomStatusUpdate(bookingInfo.roomId, '使用中');
 
         this.$message.success(`房间预订成功! 总费用: ¥${bookingInfo.totalPrice}`);
       } catch (error) {
         this.$message.error(`预订失败: ${error.message}`);
         console.error('预订错误:', error);
       }
+    },
+
+    // 开始轮询
+    startPolling() {
+      if (this.pollingTimer) {
+        clearInterval(this.pollingTimer)
+      }
+      
+      this.pollingTimer = setInterval(() => {
+        if (this.isVisible) {
+          this.fetchRoomsSilently()
+        }
+      }, this.pollingInterval)
+      
+      console.log('房间状态轮询已启动，间隔:', this.pollingInterval, 'ms')
+    },
+
+    // 停止轮询
+    stopPolling() {
+      if (this.pollingTimer) {
+        clearInterval(this.pollingTimer)
+        this.pollingTimer = null
+        console.log('房间状态轮询已停止')
+      }
+    },
+
+    // 静默刷新房间数据（不显示加载状态）
+    async fetchRoomsSilently() {
+      try {
+        if (this.selectedStoreId) {
+          await getRoomsByStoreId(this.selectedStoreId).then(response => {
+            const roomData = Array.isArray(response?.data) ? response.data : []
+            this.updateRoomsData(roomData)
+          })
+        } else {
+          const { filterType, currentPage: page, pageSize: size } = this
+          const response = await this.$store.dispatch('room/fetchRooms', {
+            filterType,
+            page,
+            size
+          })
+          
+          if (response?.code === 200) {
+            const roomData = Array.isArray(response?.data) ? response.data : []
+            this.updateRoomsData(roomData)
+          }
+        }
+      } catch (error) {
+        console.warn('静默刷新房间数据失败:', error)
+      }
+    },
+
+    // 更新房间数据
+    updateRoomsData(roomData) {
+      const statusMap = {
+        '空闲': 'available',
+        '使用中': 'occupied'
+      }
+      
+      const newRooms = roomData.map(room => ({
+        roomId: room.roomId || 0,
+        roomName: room.roomName || '',
+        roomType: room.roomType || '',
+        maxPlayers: room.maxPlayers || 0,
+        minPlayers: room.minPlayers || 0,
+        pricePerHour: room.pricePerHour || 0,
+        description: room.description || '',
+        imagePath: room.imagePath || 'https://via.placeholder.com/300x200',
+        status: statusMap[room.status] || 'occupied',
+        password: room.password || '',
+        storeId: room.storeId || this.selectedStoreId || 1
+      }))
+
+      // 检查房间状态变化并通知用户
+      this.checkRoomStatusChanges(this.rooms, newRooms)
+      
+      // 更新房间数据
+      this.$set(this, 'rooms', newRooms)
+    },
+
+    // 检查房间状态变化
+    checkRoomStatusChanges(oldRooms, newRooms) {
+      const oldRoomMap = new Map(oldRooms.map(room => [room.roomId, room.status]))
+      const newRoomMap = new Map(newRooms.map(room => [room.roomId, room.status]))
+      
+      for (const [roomId, newStatus] of newRoomMap) {
+        const oldStatus = oldRoomMap.get(roomId)
+        if (oldStatus && oldStatus !== newStatus) {
+          const room = newRooms.find(r => r.roomId === roomId)
+          const statusText = newStatus === 'available' ? '可预订' : '已占用'
+          
+          // 如果房间从占用变为可用，显示通知
+          if (oldStatus === 'occupied' && newStatus === 'available') {
+            this.$message({
+              message: `房间 "${room.roomName}" 现在可预订了！`,
+              type: 'success',
+              duration: 3000
+            })
+          }
+          // 如果房间从可用变为占用，显示通知
+          else if (oldStatus === 'available' && newStatus === 'occupied') {
+            this.$message({
+              message: `房间 "${room.roomName}" 已被预订`,
+              type: 'info',
+              duration: 3000
+            })
+          }
+        }
+      }
+    },
+
+    // 通知房间状态更新
+    notifyRoomStatusUpdate(roomId, status) {
+      const room = this.rooms.find(r => r.roomId === roomId)
+      const roomName = room ? room.roomName : ''
+      
+      // 使用房间状态管理器广播更新
+      roomStatusManager.broadcastRoomStatusUpdate(roomId, status, roomName)
+    },
+
+    // 处理页面可见性变化
+    handleVisibilityChange() {
+      this.isVisible = !document.hidden
+      if (this.isVisible) {
+        console.log('页面变为可见，立即刷新房间数据')
+        this.fetchRoomsSilently()
+      }
+    },
+
+    // 处理窗口获得焦点
+    handleWindowFocus() {
+      this.isVisible = true
+      console.log('窗口获得焦点，立即刷新房间数据')
+      this.fetchRoomsSilently()
+    },
+
+    // 处理窗口失去焦点
+    handleWindowBlur() {
+      this.isVisible = false
+    },
+
+    // 设置房间状态监听器
+    setupRoomStatusListener() {
+      roomStatusManager.addListener(this.roomStatusListenerId, (event) => {
+        console.log('收到房间状态更新:', event)
+        
+        // 如果是其他用户的操作，立即刷新房间数据
+        if (event.type === 'ROOM_STATUS_UPDATE') {
+          this.fetchRoomsSilently()
+          
+          // 显示状态变化通知
+          const room = this.rooms.find(r => r.roomId === event.roomId)
+          if (room && event.roomName) {
+            const statusText = event.status === '使用中' ? '已被预订' : '现在可预订'
+            const messageType = event.status === '使用中' ? 'info' : 'success'
+            
+            this.$message({
+              message: `房间 "${event.roomName}" ${statusText}`,
+              type: messageType,
+              duration: 3000
+            })
+          }
+        }
+      })
     }
   }
 

@@ -150,4 +150,23 @@ public class UserServiceImpl implements UserService {
 
         return Result.success();
     }
+    
+    @Override
+    public Result<Void> resetPassword(String username, String newPassword) {
+        // 查找用户
+        User user = userMapper.findByUsername(username);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        
+        // 更新密码
+        user.setPassword(newPassword);
+        int affectedRows = userMapper.updatePassword(user.getUserId(), newPassword);
+        
+        if (affectedRows == 0) {
+            return Result.error("密码重置失败");
+        }
+        
+        return Result.success();
+    }
 }

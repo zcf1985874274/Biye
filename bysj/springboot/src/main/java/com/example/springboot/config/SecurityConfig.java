@@ -44,10 +44,9 @@ public class SecurityConfig {
                     "/api/user/login", 
                     "/api/user/register",
                     "/api/admins/login",
-                    "/api/rooms/**",
-                    "/api/rooms/available",
-                    "/api/rooms/*/status",
-                    "/api/usage-records/**"
+                    "/api/user/check-username",
+                    "/api/user/verify-phone",
+                    "/api/user/reset-password"
                 ).permitAll()
                 .requestMatchers("/api/**").authenticated()
 

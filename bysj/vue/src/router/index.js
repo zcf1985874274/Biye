@@ -2,6 +2,7 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Login from '@/components/auth/Login.vue'
 import Register from '@/components/auth/Register.vue'
+import ForgotPassword from '@/components/auth/ForgotPassword.vue'
 import Home from '@/components/Home.vue'
 import roomRouter from './modules/room'
 import store from "@/store";
@@ -34,6 +35,11 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register
+  },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: ForgotPassword
   },
   {
     path: '/home',

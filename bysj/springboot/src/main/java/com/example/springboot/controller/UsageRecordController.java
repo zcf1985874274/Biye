@@ -3,6 +3,7 @@ package com.example.springboot.controller;
 import com.example.springboot.model.UsageRecord;
 import com.example.springboot.service.UsageRecordService;
 import com.example.springboot.util.JwtUtil;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,9 +51,9 @@ public class UsageRecordController {
         }
     }
 
-    @Operation(summary = "根据ID获取使用记录")
+    @Operation(summary = "根据ID获取使用记录", description = "根据记录ID获取使用记录的详细信息")
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> findById(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, Object>> findById(@Parameter(description = "记录ID") @PathVariable Integer id) {
         Map<String, Object> response = new HashMap<>();
         try {
             String key = "usage_records:id:" + id;
@@ -77,9 +78,9 @@ public class UsageRecordController {
         }
     }
 
-    @Operation(summary = "根据房间ID查询使用记录")
+    @Operation(summary = "根据房间ID查询使用记录", description = "获取指定棋牌室房间的所有使用记录")
     @GetMapping("/room/{roomId}")
-    public ResponseEntity<Map<String, Object>> findByRoomId(@PathVariable Integer roomId) {
+    public ResponseEntity<Map<String, Object>> findByRoomId(@Parameter(description = "房间ID") @PathVariable Integer roomId) {
         Map<String, Object> response = new HashMap<>();
         try {
             String key = "usage_records:room:" + roomId;
@@ -99,9 +100,9 @@ public class UsageRecordController {
         }
     }
 
-    @Operation(summary = "根据用户ID查询使用记录")
+    @Operation(summary = "根据用户ID查询使用记录", description = "获取指定用户的所有使用记录")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<Map<String, Object>> findByUserId(@PathVariable Integer userId) {
+    public ResponseEntity<Map<String, Object>> findByUserId(@Parameter(description = "用户ID") @PathVariable Integer userId) {
         Map<String, Object> response = new HashMap<>();
         try {
             String key = "usage_records:user:" + userId;
@@ -121,12 +122,12 @@ public class UsageRecordController {
         }
     }
 
-    @Operation(summary = "获取当前用户的使用记录")
+    @Operation(summary = "获取当前用户的使用记录", description = "获取当前登录用户的使用记录，可按年月筛选")
     @GetMapping("/self")
     public ResponseEntity<Map<String, Object>> getSelfUsageRecords(
         @RequestHeader("Authorization") String token,
-        @RequestParam(required = false) Integer year,
-        @RequestParam(required = false) Integer month
+        @Parameter(description = "年份，可选") @RequestParam(required = false) Integer year,
+        @Parameter(description = "月份，可选") @RequestParam(required = false) Integer month
     ) {
         Map<String, Object> response = new HashMap<>();
         try {
@@ -153,19 +154,34 @@ public class UsageRecordController {
         }
     }
 
-    @Operation(summary = "创建使用记录")
+    @Operation(summary = "创建使用记录", description = "创建新的棋牌室使用记录")
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@RequestBody UsageRecord usageRecord) {
         Map<String, Object> response = new HashMap<>();
         try {
+            // 添加调试日志
+            System.out.println("接收到的使用记录数据: " + usageRecord);
+            System.out.println("roomId: " + usageRecord.getRoomId());
+            System.out.println("userId: " + usageRecord.getUserId());
+            System.out.println("storeId: " + usageRecord.getStoreId());
+            System.out.println("startTime: " + usageRecord.getStartTime());
+            System.out.println("endTime: " + usageRecord.getEndTime());
+            
             // 验证必要字段（包括 storeId）
             if (usageRecord.getRoomId() == null || usageRecord.getUserId() == null
                     || usageRecord.getStartTime() == null || usageRecord.getEndTime() == null
                     || usageRecord.getStoreId() == null) { // 新增 storeId 校验
                 response.put("code", 400);
-                response.put("message", "缺少必要参数");
+                response.put("message", "缺少必要参数: roomId=" + usageRecord.getRoomId() + 
+                    ", userId=" + usageRecord.getUserId() + ", storeId=" + usageRecord.getStoreId() + 
+                    ", startTime=" + (usageRecord.getStartTime() != null ? usageRecord.getStartTime().toString() : "null") + 
+                    ", endTime=" + (usageRecord.getEndTime() != null ? usageRecord.getEndTime().toString() : "null"));
                 return ResponseEntity.badRequest().body(response);
             }
+            
+            // 时间字段已经是Timestamp类型，无需转换
+            // 如果需要验证时间格式，可以在这里添加验证逻辑
+            
             int result = usageRecordService.save(usageRecord);
             // 清除相关缓存
             clearUsageRecordCache(usageRecord.getUserId(), usageRecord.getRoomId(), usageRecord.getStoreId());
@@ -181,9 +197,9 @@ public class UsageRecordController {
         }
     }
 
-    @Operation(summary = "更新使用记录")
+    @Operation(summary = "更新使用记录", description = "更新已有的使用记录信息")
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> update(@PathVariable Integer id, @RequestBody UsageRecord usageRecord) {
+    public ResponseEntity<Map<String, Object>> update(@Parameter(description = "记录ID") @PathVariable Integer id, @RequestBody UsageRecord usageRecord) {
         Map<String, Object> response = new HashMap<>();
         try {
             // 先获取原记录信息，用于清除缓存
@@ -212,9 +228,9 @@ public class UsageRecordController {
         }
     }
 
-    @Operation(summary = "删除使用记录")
+    @Operation(summary = "删除使用记录", description = "根据ID删除使用记录")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> delete(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, Object>> delete(@Parameter(description = "记录ID") @PathVariable Integer id) {
         Map<String, Object> response = new HashMap<>();
         try {
             // 先获取要删除的记录信息，用于清除缓存

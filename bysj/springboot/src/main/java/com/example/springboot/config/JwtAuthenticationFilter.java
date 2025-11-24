@@ -69,60 +69,103 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             // 根据请求路径选择使用哪个DetailsService
             String requestUri = request.getRequestURI();
+            logger.info("处理JWT认证，用户: " + username + ", 请求路径: " + requestUri);
             UserDetailsService detailsService = null;
             
-            // 管理员相关路径使用adminDetailsService
-            if (requestUri.startsWith("/api/admins")) {
-                detailsService = adminDetailsService;
-            } 
-            // 管理员操作的用户管理和房间管理路径使用adminDetailsService
-            else if (requestUri.equals("/api/user/all") || 
-                     requestUri.equals("/api/user") ||
-                     requestUri.startsWith("/api/rooms/") ||
-                     requestUri.equals("/api/rooms")) {
-                detailsService = adminDetailsService;
-            }
-            // 管理员查看所有订单记录（排除用户自己的订单）
-            else if (requestUri.startsWith("/api/usage-records") && 
-                     !requestUri.startsWith("/api/usage-records/self") &&
-                     !requestUri.startsWith("/api/usage-records/user/")) {
-                detailsService = adminDetailsService;
-            } 
+            // 优先匹配普通用户路径（更具体的路径优先）
             // 普通用户修改自己的信息
-            else if (requestUri.equals("/api/user/self")) {
+            if (requestUri.equals("/api/user/self")) {
                 detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理用户自己信息修改");
             }
             // 普通用户查看自己的订单记录
             else if (requestUri.startsWith("/api/usage-records/self")) {
                 detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理用户自己订单记录");
             }
             // 普通用户根据用户ID查询记录（需要权限验证）
             else if (requestUri.startsWith("/api/usage-records/user/")) {
                 detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理用户ID查询记录");
             }
-            // 普通用户和管理员都可以访问 /api/stores
-            else if (requestUri.equals("/api/stores")) {
+            // 普通用户和管理员都可以访问的路径
+            else if (requestUri.equals("/api/stores") || 
+                     requestUri.equals("/api/rooms") ||
+                     requestUri.startsWith("/api/rooms/available") ||
+                     requestUri.equals("/api/usage-records")) {
                 // 首先尝试使用userDetailsService（普通用户）
                 try {
                     detailsService = userDetailsService;
-                    // 尝试加载用户，如果用户存在则使用userDetailsService
-                    userDetailsService.loadUserByUsername(username);
-                } catch (UsernameNotFoundException e) {
-                    // 如果普通用户不存在，再尝试使用adminDetailsService
-                    try {
-                        detailsService = adminDetailsService;
-                        adminDetailsService.loadUserByUsername(username);
-                    } catch (UsernameNotFoundException ex) {
-                        // 如果都不存在，则抛出异常
-                        throw new UsernameNotFoundException("用户不存在: " + username);
-                    }
+                    logger.info("尝试使用userDetailsService加载用户: " + username);
+                } catch (Exception e) {
+                    logger.error("设置userDetailsService失败: " + e.getMessage());
                 }
+            }
+            // 管理员相关路径使用adminDetailsService
+            else if (requestUri.startsWith("/api/admins")) {
+                detailsService = adminDetailsService;
+                logger.info("使用adminDetailsService处理管理员相关路径");
+            } 
+            // 管理员操作的用户管理和房间管理路径使用adminDetailsService
+            else if (requestUri.equals("/api/user/all") || 
+                     requestUri.equals("/api/user") ||
+                     (requestUri.startsWith("/api/rooms/") && 
+                      !requestUri.startsWith("/api/rooms/available") &&
+                      !requestUri.endsWith("/status") &&
+                      !requestUri.matches("/api/rooms/\\d+/status"))) {
+                detailsService = adminDetailsService;
+                logger.info("使用adminDetailsService处理管理员操作路径");
+            }
+            // 管理员查看所有订单记录（排除用户自己的订单和共享路径）
+            else if (requestUri.startsWith("/api/usage-records") && 
+                     !requestUri.startsWith("/api/usage-records/self") &&
+                     !requestUri.startsWith("/api/usage-records/user/") &&
+                     !requestUri.equals("/api/usage-records")) {
+                detailsService = adminDetailsService;
+                logger.info("使用adminDetailsService处理管理员查看所有订单");
+            }
+            // 共享路径：房间状态更新，支持普通用户和管理员
+            else if (requestUri.matches("/api/rooms/\\d+/status")) {
+                // 默认使用userDetailsService，如果失败则尝试adminDetailsService
+                detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理房间状态更新（共享路径）");
             } else {
                 // 默认情况下使用userDetailsService（普通用户路径）
                 detailsService = userDetailsService;
+                logger.info("使用默认的userDetailsService处理请求");
             }
 
-            UserDetails userDetails = detailsService.loadUserByUsername(username);
+            UserDetails userDetails;
+            try {
+                userDetails = detailsService.loadUserByUsername(username);
+                logger.info("成功加载用户详情: " + username + ", 使用服务: " + detailsService.getClass().getSimpleName());
+            } catch (UsernameNotFoundException e) {
+                // 如果是共享路径且用户不存在，尝试使用另一个DetailsService
+                if (requestUri.equals("/api/stores") || 
+                    requestUri.equals("/api/rooms") ||
+                    requestUri.startsWith("/api/rooms/available") ||
+                    requestUri.equals("/api/usage-records") ||
+                    requestUri.matches("/api/rooms/\\d+/status")) {
+                    logger.info("用户不存在，尝试使用另一个DetailsService: " + username);
+                    try {
+                        // 如果之前用的是userDetailsService，现在尝试adminDetailsService
+                        if (detailsService == userDetailsService) {
+                            detailsService = adminDetailsService;
+                            logger.info("切换到adminDetailsService尝试加载: " + username);
+                        } else {
+                            detailsService = userDetailsService;
+                            logger.info("切换到userDetailsService尝试加载: " + username);
+                        }
+                        userDetails = detailsService.loadUserByUsername(username);
+                        logger.info("使用另一个DetailsService成功加载用户: " + username);
+                    } catch (UsernameNotFoundException ex) {
+                        logger.error("用户和管理员都不存在: " + username);
+                        throw new UsernameNotFoundException("用户不存在: " + username);
+                    }
+                } else {
+                    throw e;
+                }
+            }
 
             if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(

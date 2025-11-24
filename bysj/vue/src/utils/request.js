@@ -20,18 +20,30 @@ service.interceptors.request.use(
       headers: config.headers
     })
     
-    // 添加token - 优先检查管理员token
-    const adminToken = store.getters['admin/adminToken']
-    const userToken = store.getters.token
+    // 检查是否是忘记密码相关的接口，这些接口不需要token
+    const isForgotPasswordApi = config.url && (
+      config.url.includes('/api/user/check-username') ||
+      config.url.includes('/api/user/verify-phone') ||
+      config.url.includes('/api/user/reset-password')
+    )
     
-    if (adminToken) {
-      config.headers['Authorization'] = 'Bearer ' + adminToken
-      console.log('使用管理员token:', adminToken.substring(0, 20) + '...')
-    } else if (userToken) {
-      config.headers['Authorization'] = 'Bearer ' + userToken
-      console.log('使用用户token:', userToken.substring(0, 20) + '...')
+    // 只有非忘记密码接口才添加token
+    if (!isForgotPasswordApi) {
+      // 添加token - 优先检查管理员token
+      const adminToken = store.getters.adminToken
+      const userToken = store.getters.token
+      
+      if (adminToken) {
+        config.headers['Authorization'] = 'Bearer ' + adminToken
+        console.log('使用管理员token:', adminToken.substring(0, 20) + '...')
+      } else if (userToken) {
+        config.headers['Authorization'] = 'Bearer ' + userToken
+        console.log('使用用户token:', userToken.substring(0, 20) + '...')
+      } else {
+        console.log('未找到token，请求可能未授权')
+      }
     } else {
-      console.log('未找到token，请求可能未授权')
+      console.log('忘记密码接口，不添加token')
     }
     
     // 确保PATCH请求有正确的Content-Type
@@ -90,7 +102,9 @@ service.interceptors.response.use(
     let errorMsg = '请求失败'
     if (error.response) {
       // 服务器返回了错误响应
+      console.error('完整错误响应:', error.response.data)
       errorMsg = error.response.data?.message || 
+                error.response.data?.error ||
                 `服务器错误: ${error.response.status}`
       
       console.error('API请求错误:', error)

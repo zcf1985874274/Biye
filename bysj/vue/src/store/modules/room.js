@@ -75,6 +75,47 @@ const actions = {
     } catch (error) {
       throw new Error(error.response?.data?.message || '更新房间状态失败')
     }
+  },
+
+  // 更新单个房间状态
+  updateSingleRoomStatus({ commit, state }, { roomId, newStatus }) {
+    const rooms = [...state.rooms]
+    const roomIndex = rooms.findIndex(room => room.roomId === roomId)
+    
+    if (roomIndex !== -1) {
+      const statusMap = {
+        '空闲': 'available',
+        '使用中': 'occupied'
+      }
+      
+      rooms[roomIndex] = {
+        ...rooms[roomIndex],
+        status: statusMap[newStatus] || newStatus
+      }
+      
+      commit('SET_ROOMS', {
+        list: rooms,
+        total: state.totalRooms
+      })
+    }
+  },
+
+  // 静默获取房间数据（用于轮询）
+  async fetchRoomsSilently({ commit }, params = {}) {
+    try {
+      const { filterType = 'all', page = 1, size = 8 } = params
+      const api = filterType === 'all' ? getRooms : getAvailableRooms
+      const response = await api({ page, size })
+      
+      if (response.code === 200) {
+        const data = Array.isArray(response.data) ? response.data : []
+        return { code: 200, data }
+      }
+      return { code: response.code, data: [] }
+    } catch (error) {
+      console.warn('静默获取房间数据失败:', error)
+      return { code: 500, data: [] }
+    }
   }
 }
 

@@ -41,6 +41,7 @@
         </div>
         <div class="form-links">
           <router-link to="/register">还没有账号？立即注册</router-link>
+          <router-link to="/forgot-password" class="forgot-password-link">忘记密码？</router-link>
         </div>
       </div>
     </div>
@@ -244,7 +245,8 @@ export default {
 }
 
 .form-links {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
   font-size: 14px;
 }
 

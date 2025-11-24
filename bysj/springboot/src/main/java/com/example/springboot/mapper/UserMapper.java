@@ -59,6 +59,15 @@ public interface UserMapper {
      * @return 影响的行数
      */
     int deleteById(Integer userId);
+    
+    /**
+     * 更新用户密码
+     * @param userId 用户ID
+     * @param password 新密码
+     * @return 影响的行数
+     */
+    int updatePassword(@Param("userId") Integer userId, @Param("password") String password);
+
 
 
 
