@@ -80,12 +80,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8081")); // 明确指定前端应用地址
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")); // 允许的HTTP方法
-        configuration.setAllowedHeaders(Arrays.asList("*")); // 允许所有头
-        configuration.setExposedHeaders(Arrays.asList("Authorization")); // 暴露Authorization头
-        configuration.setAllowCredentials(true); // 允许发送凭证
-        configuration.setMaxAge(3600L); // 预检请求的缓存时间（秒）
+
+        // 使用 allowedOriginPatterns 支持通配符（推荐方式，可与 allowCredentials(true) 共存）
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",          // 本地开发，所有端口
+                "http://127.0.0.1:*",
+                "http://*.natappfree.cc",      // 所有 Natapp 免费域名（每次更换前缀都行）
+                "http://*.natapp.cn",          // 如果你用付费版或其他后缀
+                "https://your-production-domain.com"  // 上线后加你的正式域名
+        ));
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

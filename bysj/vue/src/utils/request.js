@@ -5,7 +5,9 @@ import router from "@/router";
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: process.env.VUE_APP_BASE_API || 'http://localhost:8080', // 默认本地开发环境
+  baseURL: process.env.NODE_ENV === 'production'
+      ? process.env.VUE_APP_BASE_API   // 生产环境用配置的线上域名
+      : '/api', // 默认本地开发环境
   timeout: 10000 // 增加超时时间
 })
 
