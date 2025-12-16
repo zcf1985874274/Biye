@@ -26,6 +26,8 @@ public class PaymentController {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+
+
     /**
      * 创建支付记录
      * @param data 包含用户ID、支付方式和金额的请求体

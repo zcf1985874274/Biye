@@ -125,6 +125,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 detailsService = userDetailsService;
                 logger.info("使用userDetailsService处理用户支付宝支付相关请求");
             }
+            // 普通用户余额支付相关路径
+            else if (requestUri.startsWith("/api/payments")) {
+                detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理用户支付相关请求");
+            }
             // 普通用户修改自己的信息
             else if (requestUri.equals("/api/user/self")) {
                 detailsService = userDetailsService;

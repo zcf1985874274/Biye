@@ -210,10 +210,37 @@ export default {
     async handlePayment() {
       if (this.paymentLoading) return
 
-      // 余额支付（你原来有的逻辑）
+
+      // 余额支付
       if (this.paymentMethod === 'balance') {
-        // 这里放你原来的余额支付代码
-        this.$message.info('余额支付功能待开发')
+        try {
+          this.paymentLoading = true
+
+          const response = await request({
+            url: '/api/payments',
+            method: 'post',
+            data: {
+              userId: this.userId,
+              paymentMethod: 'balance',
+              amount: this.totalPrice
+            }
+          })
+
+          if (response.code === 200) {
+            this.$message.success('余额支付成功')
+
+            setTimeout(() => {
+              this.createUsageRecord(response.data.paymentId)
+            }, 500)
+          } else {
+            this.$message.error(response.message || '支付失败')
+          }
+        } catch (error) {
+          console.error('余额支付失败:', error)
+          this.$message.error('支付失败，请稍后重试')
+        } finally {
+          this.paymentLoading = false
+        }
         return
       }
 
