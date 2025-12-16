@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.mapper.PaymentMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.springboot.model.Payment">
+        <id column="payment_id" property="paymentId" />
+        <result column="user_id" property="userId" />
+        <result column="payment_method" property="paymentMethod" />
+        <result column="amount" property="amount" />
+        <result column="payment_status" property="paymentStatus" />
+        <result column="payment_time" property="paymentTime" />
+        <result column="alipay_transaction_id" property="alipayTransactionId" />
+    </resultMap>
+
+    <!-- 插入支付记录 -->
+    <insert id="insert" parameterType="com.example.springboot.model.Payment" useGeneratedKeys="true" keyProperty="paymentId">
+        INSERT INTO payments (
+            user_id, payment_method, amount, payment_status, payment_time, alipay_transaction_id
+        ) VALUES (
+            #{userId}, #{paymentMethod}, #{amount}, #{paymentStatus}, #{paymentTime}, #{alipayTransactionId}
+        )
+    </insert>
+
+    <!-- 根据支付ID查询支付记录 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM payments WHERE payment_id = #{paymentId}
+    </select>
+
+    <!-- 根据用户ID查询支付记录 -->
+    <select id="findByUserId" resultMap="BaseResultMap">
+        SELECT * FROM payments WHERE user_id = #{userId} ORDER BY payment_time DESC
+    </select>
+
+    <!-- 查询所有支付记录 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM payments ORDER BY payment_time DESC
+    </select>
+
+    <!-- 更新支付状态 -->
+    <update id="updatePaymentStatus">
+        UPDATE payments SET payment_status = #{paymentStatus} WHERE payment_id = #{paymentId}
+    </update>
+
+    <!-- 根据用户ID和支付状态查询支付记录 -->
+    <select id="findByUserIdAndStatus" resultMap="BaseResultMap">
+        SELECT * FROM payments WHERE user_id = #{userId} AND payment_status = #{paymentStatus} ORDER BY payment_time DESC
+    </select>
+
+    <!-- 根据支付宝交易ID查询支付记录 -->
+    <select id="findByAlipayTransactionId" resultMap="BaseResultMap">
+        SELECT * FROM payments WHERE alipay_transaction_id = #{alipayTransactionId}
+    </select>
+
+    <!-- 更新支付记录 -->
+    <update id="update" parameterType="com.example.springboot.model.Payment">
+        UPDATE payments
+        <set>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="paymentStatus != null">payment_status = #{paymentStatus},</if>
+            <if test="alipayTransactionId != null">alipay_transaction_id = #{alipayTransactionId},</if>
+        </set>
+        WHERE payment_id = #{paymentId}
+    </update>
+
+    <!-- 根据ID删除支付记录 -->
+    <delete id="deleteById">
+        DELETE FROM payments WHERE payment_id = #{paymentId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,53 @@
+# application.yml
+server:
+  port: 8080
+
+# ====================== 数据库配置 ======================
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/game_room_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    # HikariCP 连接池配置
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 50
+      minimum-idle: 10
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: null   # 空密码写 null 或直接留空
+      database: 0
+
+# ====================== MyBatis 配置 ======================
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.springboot.model
+
+# ====================== JWT 配置 ======================
+jwt:
+  secret: A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0A1b154d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0
+  expiration: 86400   # 单位：秒（24小时）
+
+# ====================== 日志配置 ======================
+logging:
+  level:
+    com.example.springboot: debug
+
+# ====================== 支付宝沙箱配置 ======================
+alipay:
+  enable: true                                      # true=沙箱，false=正式环境
+  gateway-url: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+  app-id: 9021000158618899
+  private-key: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCcF3v1VLmJDCLQF1QR1bcgIBk4YAv7h0XxNUGThKmv4VwZABong1RKDG9h43DOFhbgn8VAwNUEt6I8yK0SqpC4CsAWv9aOl7SQewRJqd2vpRSC7o2wlygA0O7+uxBikpH2qcCnnImju9S86A6clzF1QMB5uWgNbqz+pdaok5X0Uih9iTjyb9vC9rlrVCsAR5RsIU7U5XDT/ndL7TQqLL0eMAzYUy+ReYYKax1B3lnS3D5/k7XNm7R33P8UBStpQar4CIiAh9oAv7lZtLPqMlo0b80vvsNVEggqIOrposZLMIO+gtIC3taP4XbO+fq1FDsRtkTtd2ZG1q2t/UnGRfgDAgMBAAECggEAcsc2CHWPpL3+z2OIF0E+0mmoAfNmfEPBY5gUq2QO3tzpOxz/HnUMwxKXyLRVG8XUdsIlavMg8MITk3zA/4vatOp6y3+vRtU5GlDLG1vEPsc16P1/xQ2xhcAdLcTiTImYuXejydxqvbJ9wZcmP3FSFfVSU2/Jmq76mJnb2cQErU2iHHan2YcXWTbQjlbxCkCIEkmKzw1Fqv+TN73oIkH0Y3eZ+EbAXbtIyleRWCAUKkJOGOPclMktjglgLKZ4wEfXOjxmaNOj079cFD3+0g0vf4lzMvwv0afYMoT/q0NxMj6iE9FArhQfaxpvQJ/yVh4rdWIyfJrq6QVDzcLzysUHWQKBgQDUjO1AkaxyjuboZkyDfZ5oFA6QXCp2wECi3xVviAKC2UV1eIsw7g3hrl5aPYkQ0+B2HSuQG6/kEaQmt+oosO7UdAZ9lp9ik1rm9xsvecIGeLDB7Ecj9ekkX9Imv7WLmKWHYN0HAGXg+WJLEuViTvRt7i8RSeoVQcwb9YNAp9ZxjQKBgQC7//1C7EyP1lvuS1mf8zqApkgKcCqsLXpSPin24BVbne7RRxjQ+jv2WZf9o31VDYwMqTf2j9AVJK446KbymUwWuUfYxUvRKKtB05WYu0bmUHNpDahyrlm0UDCc/YFpGIb//IBzcRFxeO4Lit9eCJLjEIiWwT66/jV4sH0LcRmDzwKBgQCJRbL8nph3LB+pPFhyG7EwmrOFPGEYbLXR+q3HaFnm1Bft9DpBEZ3ZgVnigheBzLUM024NFjSU4WfYsbMDMLIud/ixJ5Qsf+qXfEQMd2B9+Xh+5fBUIz+9hD0fVXUUgTN2qXJWUUV69NUskzmeMkveq5OuYMRTkjkWXYu1ODBhCQKBgQCEbSmk/nZfy4suK/2R4e8PuBF+6MvmRJKpZAiDUg05X+JdoEsmyV17hli93W/nfYdtU7WMBHl6qz/d7mPK95jVWOX3F+L0DkW0NKpnz2N90KW7FlfVkGK31NSpgRirQw+1OdPxfW/gEmL71nLI9hkhwP+10aGybmaUAR3T9XMXmQKBgADCz6gYirvFJTgqCxMkpHkaEXaZ7aRKeOKO2T/QgDj+kWsyDNDS6kAAFCSLX77fkj+2Xc+KQFXf52oJMw8qophpysFUXVuiPC9VpNNVlbfZjaMfmyD1uyy2uw8K4Iy3FOaWl7IO3yZZMxlcdO/USy2XqMY5kZuE1/vUhs7bwIro
+  alipay-public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArcjGWfqRWKrF+dU1fTSFwFU0MhQcX3l1tBvDJ18v/DYFSTdO4iU2o8563PMMK3i6g9Sc/26Yaq0fLZi2voeTLTPbWg84nYrW8aDw1plMRjzcG0Pj5319VyX3bBDSLl5Mwytgnf6xL0Js9qs4s9g2B9ysLMmz1PHwxKBdOJBjzdzyL0/XOSyP4q2GaGY/IcBL+Sx8AYjF8G/YGg/hJn1Mpu4OeK+n9x76IGRiubLYzSYg3InLkXFTM/q39ZOw7mdeEhkmMk8jOSfFKgMPoFdwgXesxBcq6kpKj+1KYJ8QVwQptXSVYL8O1/A7svKV5ct1VIMVpwZAZKRGWhbg73avWQIDAQAB
+  notify-url: http://j267ace3.natappfree.cc/api/payments/notify
+  return-url: http://j267ace3.natappfree.cc/payment/return
