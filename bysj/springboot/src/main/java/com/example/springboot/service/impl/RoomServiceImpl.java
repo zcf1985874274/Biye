@@ -26,11 +26,22 @@ public class RoomServiceImpl implements RoomService {
     private UsageRecordMapper usageRecordMapper;
 
     @Override
-    public Result<List<Room>> getAllRooms() {
+    public Result<?> getAllRooms(int page, int size) {
         try {
-            List<Room> rooms = roomMapper.findAll();
-            System.out.println(rooms);
-            return Result.success(rooms);
+            // 计算偏移量
+            int offset = (page - 1) * size;
+            List<Room> rooms = roomMapper.findAllWithPagination(offset, size);
+            int total = roomMapper.countAllRooms();
+            
+            // 创建分页结果
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("records", rooms);
+            result.put("total", total);
+            result.put("current", page);
+            result.put("size", size);
+            result.put("pages", (int) Math.ceil((double) total / size));
+            
+            return Result.success(result);
         } catch (Exception e) {
             return Result.error("获取房间列表失败: " + e.getMessage());
         }
@@ -106,10 +117,22 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public Result<List<Room>> getAvailableRooms(Integer storeId) {
+    public Result<?> getAvailableRooms(Integer storeId, int page, int size) {
         try {
-            List<Room> rooms = roomMapper.findAvailableRooms(storeId);
-            return Result.success(rooms);
+            // 计算偏移量
+            int offset = (page - 1) * size;
+            List<Room> rooms = roomMapper.findAvailableRoomsWithPagination(storeId, offset, size);
+            int total = roomMapper.countAvailableRooms(storeId);
+            
+            // 创建分页结果
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("records", rooms);
+            result.put("total", total);
+            result.put("current", page);
+            result.put("size", size);
+            result.put("pages", (int) Math.ceil((double) total / size));
+            
+            return Result.success(result);
         } catch (Exception e) {
             return Result.error("获取可用房间失败: " + e.getMessage());
         }
@@ -146,8 +169,25 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public Result<?> getRoomsByStoreId(Integer storeId) {
-        return Result.success(roomMapper.findByStoreId(storeId));
+    public Result<?> getRoomsByStoreId(Integer storeId, int page, int size) {
+        try {
+            // 计算偏移量
+            int offset = (page - 1) * size;
+            List<Room> rooms = roomMapper.findByStoreIdWithPagination(storeId, offset, size);
+            int total = roomMapper.countRoomsByStoreId(storeId);
+            
+            // 创建分页结果
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("records", rooms);
+            result.put("total", total);
+            result.put("current", page);
+            result.put("size", size);
+            result.put("pages", (int) Math.ceil((double) total / size));
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            return Result.error("获取门店房间失败: " + e.getMessage());
+        }
     }
 
     @Autowired

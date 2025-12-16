@@ -21,6 +21,7 @@ const mutations = {
 const actions = {
   async fetchRooms({ commit }, params = {}) {
     try {
+      console.log('Vuex fetchRooms 调用参数:', params);
       const { filterType = 'all', page = 1, size = 8, storeId, ...otherParams } = params
       let response;
       let apiParams = { page, size, ...otherParams };
@@ -35,16 +36,40 @@ const actions = {
         response = await api(apiParams);
       }
       
+      console.log('Vuex fetchRooms API响应:', response);
+      
       if (response.code === 200) {
-        const data = Array.isArray(response.data) ? response.data : []
-        commit('SET_ROOMS', {
-          list: data,
-          total: data.length
-        })
-        return { code: 200, data }
+        // 处理分页响应
+        if (response.data && typeof response.data === 'object' && 'records' in response.data) {
+          // 分页响应格式: { records: [...], total: xx, current: xx, size: xx, pages: xx }
+          commit('SET_ROOMS', {
+            list: response.data.records,
+            total: response.data.total
+          })
+          console.log('Vuex fetchRooms 分页响应 - 记录数:', response.data.records.length, '总数:', response.data.total, '当前页:', response.data.current);
+          return { 
+            code: 200, 
+            data: {
+              records: response.data.records,
+              total: response.data.total,
+              current: response.data.current,
+              size: response.data.size,
+              pages: response.data.pages
+            }
+          }
+        } else {
+          // 兼容旧格式，直接是数组
+          const data = Array.isArray(response.data) ? response.data : []
+          commit('SET_ROOMS', {
+            list: data,
+            total: data.length
+          })
+          return { code: 200, data }
+        }
       }
       throw new Error(response.message || '获取房间失败')
     } catch (error) {
+      console.error('Vuex fetchRooms 错误:', error);
       throw new Error(error.message || '网络异常，请稍后重试')
     }
   },

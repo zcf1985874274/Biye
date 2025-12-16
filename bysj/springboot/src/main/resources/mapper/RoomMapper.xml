@@ -73,4 +73,42 @@
     <select id="findByStoreId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
         SELECT * FROM rooms WHERE store_id = #{storeId}
     </select>
+    
+    <!-- 分页查询所有房间 -->
+    <select id="findAllWithPagination" resultMap="BaseResultMap">
+        SELECT * FROM rooms ORDER BY room_id LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <!-- 分页查询可用房间 -->
+    <select id="findAvailableRoomsWithPagination" resultMap="BaseResultMap">
+        SELECT * FROM rooms WHERE status = '空闲'
+        <if test="storeId != null">
+            AND store_id = #{storeId}
+        </if>
+        ORDER BY room_id LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <!-- 分页查询指定门店的房间 -->
+    <select id="findByStoreIdWithPagination" resultMap="BaseResultMap">
+        SELECT * FROM rooms WHERE store_id = #{storeId} 
+        ORDER BY room_id LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <!-- 统计所有房间数量 -->
+    <select id="countAllRooms" resultType="int">
+        SELECT COUNT(*) FROM rooms
+    </select>
+    
+    <!-- 统计可用房间数量 -->
+    <select id="countAvailableRooms" resultType="int">
+        SELECT COUNT(*) FROM rooms WHERE status = '空闲'
+        <if test="storeId != null">
+            AND store_id = #{storeId}
+        </if>
+    </select>
+    
+    <!-- 统计指定门店的房间数量 -->
+    <select id="countRoomsByStoreId" parameterType="java.lang.Integer" resultType="int">
+        SELECT COUNT(*) FROM rooms WHERE store_id = #{storeId}
+    </select>
 </mapper>

@@ -29,20 +29,20 @@ public class RoomController {
     @GetMapping
     @Operation(summary = "获取所有房间信息", description = "获取系统中所有棋牌室房间的信息列表")
     //获取所有房间信息
-    public Result<?> getAllRooms() {
-        String key = "rooms:all";
-        Result<?> result = (Result<?>) redisTemplate.opsForValue().get(key);
-        if (result == null) {
-            result = roomService.getAllRooms();
-            redisTemplate.opsForValue().set(key, result, 1, TimeUnit.MINUTES);
-        }
-        return result;
+    public Result<?> getAllRooms(
+            @Parameter(description = "页码，默认为1") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页大小，默认为8") @RequestParam(defaultValue = "8") int size) {
+        // 移除缓存逻辑，因为分页数据不适合缓存
+        return roomService.getAllRooms(page, size);
     }
 
     @GetMapping("/available")
     @Operation(summary = "获取可用房间", description = "获取当前可用的棋牌室房间列表")
-    public Result<?> getAvailableRooms(@Parameter(description = "门店ID，可选") @RequestParam(required = false) Integer storeId) {
-        return roomService.getAvailableRooms(storeId);
+    public Result<?> getAvailableRooms(
+            @Parameter(description = "门店ID，可选") @RequestParam(required = false) Integer storeId,
+            @Parameter(description = "页码，默认为1") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页大小，默认为8") @RequestParam(defaultValue = "8") int size) {
+        return roomService.getAvailableRooms(storeId, page, size);
     }
 
     @GetMapping("/{id}")
@@ -63,17 +63,20 @@ public class RoomController {
     @PreAuthorize("hasRole('super_admin') or hasRole('admin')")
     @Operation(summary = "获取指定店铺的房间信息", description = "根据门店ID获取该门店下的所有房间信息")
     //获取指定店铺的房间信息
-    public Result<?> getRoomsByStoreId(@Parameter(description = "门店ID") @PathVariable Integer storeId) {
+    public Result<?> getRoomsByStoreId(
+            @Parameter(description = "门店ID") @PathVariable Integer storeId,
+            @Parameter(description = "页码，默认为1") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页大小，默认为8") @RequestParam(defaultValue = "8") int size) {
         if (storeId == null) {
             return Result.error("storeId不能为空");
         }
         // 如果是super_admin，返回所有房间
         if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_super_admin"))) {
-            return roomService.getAllRooms();
+            return roomService.getAllRooms(page, size);
         }
         // 否则返回指定storeId的房间
-        return roomService.getRoomsByStoreId(storeId);
+        return roomService.getRoomsByStoreId(storeId, page, size);
     }
 
     @PostMapping

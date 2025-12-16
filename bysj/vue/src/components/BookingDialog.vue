@@ -3,7 +3,10 @@
     <el-dialog
       :title="`预订房间 - ${room.roomName}`"
       :visible.sync="dialogVisible"
-      width="50%"
+      :width="dialogWidth"
+      :top="dialogTop"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
       @close="handleClose"
       @update:visible="val => $emit('update:visible', val)"
     >
@@ -38,7 +41,10 @@
     <el-dialog
       title="选择支付方式"
       :visible.sync="paymentDialogVisible"
-      width="40%"
+      :width="paymentDialogWidth"
+      :top="dialogTop"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
       @close="handlePaymentDialogClose"
     >
     <div class="payment-methods">
@@ -126,6 +132,37 @@ export default {
     },
     totalPrice() {
       return this.form.hours * this.room.pricePerHour
+    },
+    // 动态设置对话框宽度
+    dialogWidth() {
+      // 根据屏幕宽度动态设置对话框宽度
+      if (window.innerWidth <= 480) {
+        return '95%' // 手机端
+      } else if (window.innerWidth <= 768) {
+        return '80%' // 平板端
+      } else {
+        return '50%' // 桌面端
+      }
+    },
+    // 动态设置支付对话框宽度
+    paymentDialogWidth() {
+      // 根据屏幕宽度动态设置支付对话框宽度
+      if (window.innerWidth <= 480) {
+        return '95%' // 手机端
+      } else if (window.innerWidth <= 768) {
+        return '85%' // 平板端
+      } else {
+        return '40%' // 桌面端
+      }
+    },
+    // 动态设置对话框顶部边距
+    dialogTop() {
+      // 根据屏幕高度动态设置顶部边距
+      if (window.innerHeight <= 600) {
+        return '5vh' // 矮屏幕
+      } else {
+        return '15vh' // 正常屏幕
+      }
     }
   },
   watch: {
@@ -133,12 +170,30 @@ export default {
       this.dialogVisible = newVal
     }
   },
+  mounted() {
+    // 监听窗口大小变化
+    window.addEventListener('resize', this.handleResize)
+  },
+  beforeDestroy() {
+    // 清除定时器和事件监听器
+    if (this.alipayStatusTimer) {
+      clearInterval(this.alipayStatusTimer)
+      this.alipayStatusTimer = null
+    }
+    
+    window.removeEventListener('resize', this.handleResize)
+  },
   methods: {
     handleClose() {
       this.$emit('update:visible', false)
     },
     handleConfirm() {
       this.paymentDialogVisible = true
+    },
+    // 处理窗口大小变化
+    handleResize() {
+      // 强制组件重新渲染以应用新的对话框尺寸
+      this.$forceUpdate()
     },
     handlePaymentDialogClose() {
       // 重置支付相关状态
@@ -415,13 +470,6 @@ export default {
         this.usageRecordCreated = false
       }
     }
-  },
-  beforeDestroy() {
-    // 清除定时器
-    if (this.alipayStatusTimer) {
-      clearInterval(this.alipayStatusTimer)
-      this.alipayStatusTimer = null
-    }
   }
 }
 </script>
@@ -486,5 +534,178 @@ export default {
   margin-top: 15px;
   color: #909399;
   font-size: 14px;
+}
+
+/* 响应式样式 - 平板设备 */
+@media screen and (max-width: 768px) {
+  /* 调整对话框宽度 */
+  ::v-deep .el-dialog {
+    width: 80% !important;
+    margin: 5vh auto !important;
+  }
+  
+  /* 调整支付对话框宽度 */
+  ::v-deep .el-dialog:last-child {
+    width: 85% !important;
+  }
+}
+
+/* 响应式样式 - 手机设备 */
+@media screen and (max-width: 480px) {
+  /* 调整对话框宽度和边距 */
+  ::v-deep .el-dialog {
+    width: 95% !important;
+    margin: 2vh auto !important;
+    max-height: 90vh;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  
+  /* 调整支付对话框宽度 */
+  ::v-deep .el-dialog:last-child {
+    width: 95% !important;
+    margin: 2vh auto !important;
+    max-height: 90vh;
+    border-radius: 8px;
+  }
+  
+  /* 调整对话框标题 */
+  ::v-deep .el-dialog__header {
+    padding: 15px 15px 10px;
+  }
+  
+  ::v-deep .el-dialog__title {
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  /* 调整对话框主体部分 */
+  ::v-deep .el-dialog__body {
+    padding: 15px !important;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  
+  /* 调整表单项 */
+  ::v-deep .el-form-item {
+    margin-bottom: 18px;
+  }
+  
+  /* 调整标签宽度 */
+  ::v-deep .el-form-item__label {
+    width: 90px !important;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  
+  /* 调整输入框 */
+  ::v-deep .el-input__inner {
+    height: 40px;
+    font-size: 15px;
+  }
+  
+  /* 调整选择框 */
+  ::v-deep .el-select {
+    width: 100%;
+  }
+  
+  /* 调整支付选项样式 */
+  .payment-option {
+    padding: 18px 12px;
+    margin-bottom: 18px;
+    border-radius: 8px;
+  }
+  
+  .payment-info {
+    margin-left: 12px;
+  }
+  
+  .payment-title {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+  
+  .payment-desc {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  /* 调整二维码容器 */
+  .qr-code-container {
+    margin: 18px 0;
+  }
+  
+  .qr-code-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  
+  .qr-code {
+    width: 180px;
+    height: 180px;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  }
+  
+  .qr-code-tip {
+    font-size: 14px;
+    margin-top: 12px;
+    line-height: 1.4;
+  }
+  
+  /* 调整对话框底部按钮 */
+  ::v-deep .el-dialog__footer {
+    padding: 15px;
+  }
+  
+  /* 调整按钮样式 */
+  .dialog-footer .el-button {
+    padding: 12px 18px;
+    font-size: 15px;
+    border-radius: 6px;
+  }
+}
+
+/* 横屏手机和小屏幕平板优化 */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  ::v-deep .el-dialog {
+    max-height: 85vh !important;
+  }
+  
+  ::v-deep .el-dialog__body {
+    max-height: 60vh !important;
+  }
+}
+
+/* 超小屏幕设备 */
+@media screen and (max-width: 320px) {
+  ::v-deep .el-dialog__header {
+    padding: 12px 15px 8px !important;
+  }
+  
+  ::v-deep .el-dialog__title {
+    font-size: 16px !important;
+  }
+  
+  ::v-deep .el-dialog__body {
+    padding: 12px !important;
+  }
+  
+  ::v-deep .el-form-item__label {
+    width: 75px !important;
+    font-size: 14px !important;
+  }
+  
+  .qr-code {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  
+  .dialog-footer .el-button {
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+  }
 }
 </style>

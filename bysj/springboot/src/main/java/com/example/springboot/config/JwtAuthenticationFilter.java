@@ -149,7 +149,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             else if (requestUri.equals("/api/stores") || 
                      requestUri.equals("/api/rooms") ||
                      requestUri.startsWith("/api/rooms/available") ||
-                     requestUri.equals("/api/usage-records")) {
+                     requestUri.equals("/api/usage-records") ||
+                     requestUri.startsWith("/api/rooms/store/")) {
                 // 首先尝试使用userDetailsService（普通用户）
                 detailsService = userDetailsService;
                 logger.info("使用userDetailsService处理普通用户请求");
@@ -164,6 +165,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                      requestUri.equals("/api/user") ||
                      (requestUri.startsWith("/api/rooms/") && 
                       !requestUri.startsWith("/api/rooms/available") &&
+                      !requestUri.startsWith("/api/rooms/store/") &&
                       !requestUri.endsWith("/status") &&
                       !requestUri.matches("/api/rooms/\\d+/status"))) {
                 detailsService = adminDetailsService;
@@ -197,6 +199,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (requestUri.equals("/api/stores") || 
                     requestUri.equals("/api/rooms") ||
                     requestUri.startsWith("/api/rooms/available") ||
+                    requestUri.startsWith("/api/rooms/store/") ||
                     requestUri.equals("/api/usage-records") ||
                     requestUri.matches("/api/rooms/\\d+/status")) {
                     logger.info("用户不存在，尝试使用另一个DetailsService: " + username);

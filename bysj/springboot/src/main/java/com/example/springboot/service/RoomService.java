@@ -6,14 +6,14 @@ import com.example.springboot.model.Room;
 import java.util.List;
 
 public interface RoomService {
-    Result<?> getAllRooms();
-    Result<?> getAvailableRooms(Integer storeId);
+    Result<?> getAllRooms(int page, int size);
+    Result<?> getAvailableRooms(Integer storeId, int page, int size);
     Result<?> getRoomById(Integer id);
     Result<?> addRoom(Room room);
     Result<?> updateRoom(Room room);
     Result<?> deleteRoom(Integer id);
     Result<?> updateRoomStatus(Integer id, String status);
-    Result<?> getRoomsByStoreId(Integer storeId);
+    Result<?> getRoomsByStoreId(Integer storeId, int page, int size);
 
     void checkAndUpdateExpiredRooms();
 }

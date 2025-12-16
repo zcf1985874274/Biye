@@ -53,9 +53,10 @@
     <div class="pagination-section">
       <el-pagination
           @current-change="handlePageChange"
-          :current-page="currentPage"
+          :current-page.sync="currentPage"
           :page-size="pageSize"
-          layout="prev, pager, next"
+          :layout="paginationLayout"
+          :small="paginationSmall"
           :total="totalRooms"
       >
       </el-pagination>
@@ -88,13 +89,35 @@ export default {
       selectedStoreId: null,
       filterType: 'all',
       currentPage: 1,
-      pageSize: 10,
+      pageSize: 8, // 默认PC端每页显示8个房间
       selectedRoom: null,
       totalRooms: 0,
       pollingTimer: null, // 定时器
       pollingInterval: 3000, // 3秒轮询一次，提高实时性
       isVisible: true, // 页面是否可见
       roomStatusListenerId: `RoomList_${Date.now()}`, // 唯一监听器ID
+    }
+  },
+  computed: {
+    // 动态设置每页显示的房间数量
+    dynamicPageSize() {
+      if (window.innerWidth <= 480) {
+        return 4; // 手机端每页显示4个房间
+      } else {
+        return 8; // PC端每页显示8个房间
+      }
+    },
+    // 动态设置分页布局
+    paginationLayout() {
+      if (window.innerWidth <= 480) {
+        return 'prev, next'; // 手机端只显示上一页和下一页
+      } else {
+        return 'prev, pager, next'; // PC端显示完整的分页
+      }
+    },
+    // 动态设置分页组件大小
+    paginationSmall() {
+      return window.innerWidth <= 480; // 手机端使用小尺寸分页
     }
   },
   created() {
@@ -109,6 +132,12 @@ export default {
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
     window.addEventListener('focus', this.handleWindowFocus)
     window.addEventListener('blur', this.handleWindowBlur)
+    
+    // 初始化时设置正确的页面大小
+    this.pageSize = this.dynamicPageSize
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', this.handleResize)
   },
   
   beforeDestroy() {
@@ -116,6 +145,7 @@ export default {
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     window.removeEventListener('focus', this.handleWindowFocus)
     window.removeEventListener('blur', this.handleWindowBlur)
+    window.removeEventListener('resize', this.handleResize)
     
     // 移除房间状态监听器
     roomStatusManager.removeListener(this.roomStatusListenerId)
@@ -123,10 +153,31 @@ export default {
 
 
   methods: {
+    // 处理窗口大小变化
+    handleResize() {
+      const newPageSize = this.dynamicPageSize;
+      if (newPageSize !== this.pageSize) {
+        const oldPageSize = this.pageSize;
+        this.pageSize = newPageSize;
+        
+        // 计算在新的页面大小下，当前数据应该在第几页
+        // 确保用户看到的数据大致保持一致
+        const totalItems = (this.currentPage - 1) * oldPageSize;
+        const newPage = Math.floor(totalItems / newPageSize) + 1;
+        this.currentPage = newPage;
+        
+        this.fetchRooms();
+      }
+      
+      // 强制更新分页组件
+      this.$forceUpdate();
+    },
     async fetchRooms() {
       try {
         console.log('开始获取房间数据...');
-        const { filterType, currentPage: page, pageSize: size } = this;
+        const { filterType, currentPage: page } = this;
+        // 使用动态计算的页面大小
+        const size = this.pageSize;
         const response = await this.$store.dispatch('room/fetchRooms', {
           filterType,
           page,
@@ -135,7 +186,19 @@ export default {
         console.log('获取到的完整响应:', response);
 
         if (response?.code === 200) {
-          const roomData = Array.isArray(response?.data) ? response.data : [];
+          // 处理分页响应
+          let roomData = Array.isArray(response?.data) ? response.data : [];
+          
+          // 如果有分页信息，则使用records作为数据，并设置总数
+          if (response.data && typeof response.data === 'object' && 'records' in response.data) {
+            roomData = response.data.records;
+            this.totalRooms = response.data.total || 0;
+            console.log('分页响应 - 当前页:', response.data.current, '每页大小:', response.data.size, '总页数:', response.data.pages, '总数:', this.totalRooms);
+          } else {
+            // 兼容旧格式
+            this.totalRooms = roomData.length;
+          }
+          
           console.log('处理前的房间数据:', roomData);
 
           if (roomData.length === 0) {
@@ -177,8 +240,25 @@ export default {
         return;
       }
 
-      getRoomsByStoreId(this.selectedStoreId).then(response => {
-        const roomData = Array.isArray(response?.data) ? response.data : [];
+      // 传递分页参数
+      console.log('获取门店房间，页码:', this.currentPage, '每页大小:', this.pageSize);
+      getRoomsByStoreId(this.selectedStoreId, { 
+        page: this.currentPage, 
+        size: this.pageSize 
+      }).then(response => {
+        // 处理分页响应
+        let roomData = Array.isArray(response?.data) ? response.data : [];
+        
+        // 如果有分页信息，则使用records作为数据，并设置总数
+        if (response.data && typeof response.data === 'object' && 'records' in response.data) {
+          roomData = response.data.records;
+          this.totalRooms = response.data.total || 0;
+          console.log('门店分页响应 - 当前页:', response.data.current, '每页大小:', response.data.size, '总页数:', response.data.pages, '总数:', this.totalRooms);
+        } else {
+          // 兼容旧格式
+          this.totalRooms = roomData.length;
+        }
+        
         this.$set(this, 'rooms', roomData.map(room => {
           const statusMap = {
             '空闲': 'available',
@@ -204,6 +284,74 @@ export default {
       });
     },
 
+    async fetchAvailableRooms() {
+      try {
+        const { selectedStoreId, currentPage: page, pageSize: size } = this;
+        
+        console.log('获取可用房间，页码:', page, '每页大小:', size);
+        
+        // 调用API获取可用房间
+        let response;
+        if (selectedStoreId) {
+          // 有门店ID，获取指定门店的可用房间
+          response = await this.$store.dispatch('room/fetchRooms', {
+            filterType: 'available',
+            storeId: selectedStoreId,
+            page,
+            size
+          });
+        } else {
+          // 没有门店ID，获取所有可用房间
+          response = await this.$store.dispatch('room/fetchRooms', {
+            filterType: 'available',
+            page,
+            size
+          });
+        }
+        
+        if (response?.code === 200) {
+          // 处理分页响应
+          let roomData = Array.isArray(response?.data) ? response.data : [];
+          
+          // 如果有分页信息，则使用records作为数据，并设置总数
+          if (response.data && typeof response.data === 'object' && 'records' in response.data) {
+            roomData = response.data.records;
+            this.totalRooms = response.data.total || 0;
+            console.log('可用房间分页响应 - 当前页:', response.data.current, '每页大小:', response.data.size, '总页数:', response.data.pages, '总数:', this.totalRooms);
+          } else {
+            // 兼容旧格式
+            this.totalRooms = roomData.length;
+          }
+          
+          // 使用Vue.set确保响应式更新
+          this.$set(this, 'rooms', roomData.map(room => {
+            const statusMap = {
+              '空闲': 'available',
+              '使用中': 'occupied'
+            };
+            return {
+              roomId: room.roomId || 0,
+              roomName: room.roomName || '',
+              roomType: room.roomType || '',
+              maxPlayers: room.maxPlayers || 0,
+              minPlayers: room.minPlayers || 0,
+              pricePerHour: room.pricePerHour || 0,
+              description: room.description || '',
+              imagePath: room.imagePath || 'https://via.placeholder.com/300x200',
+              status: 'available', // 可用房间都是可预订状态
+              password: room.password || '',
+              storeId: room.storeId || selectedStoreId || 1 // 确保包含storeId
+            };
+          }));
+        } else {
+          console.error('获取可用房间列表失败:', response.message || '未知错误');
+        }
+      } catch (error) {
+        console.error('获取可用房间列表失败 - 错误:', error);
+        this.$message.error('获取可用房间列表失败，请检查网络连接或稍后再试');
+      }
+    },
+
     fetchStores() {
       getAllStores().then(response => {
         this.stores = response.data;
@@ -216,13 +364,27 @@ export default {
 
 
     handlePageChange(page) {
+      console.log('分页变化，新页码:', page);
       this.currentPage = page;
-      this.fetchRooms();
+      
+      // 根据当前过滤条件调用不同的方法
+      if (this.selectedStoreId) {
+        if (this.filterType === 'available') {
+          this.fetchAvailableRooms();
+        } else {
+          this.fetchRoomsByStore();
+        }
+      } else {
+        this.fetchRooms();
+      }
     },
 
     handleFilterChange(value) {
+      // 切换过滤条件时重置到第一页
+      this.currentPage = 1;
+      
       if (value === 'available') {
-        this.fetchAvailableRoomsByStore();
+        this.fetchAvailableRooms();
       } else {
         this.fetchRoomsByStore();
       }
@@ -355,6 +517,8 @@ export default {
         const timestamp = new Date().getTime();
         const { filterType, currentPage: page, pageSize: size } = this;
         
+        console.log('静默刷新房间数据，页码:', page, '每页大小:', size);
+        
         // 统一使用Vuex dispatch获取数据，确保数据一致性
         const response = await this.$store.dispatch('room/fetchRooms', {
           filterType,
@@ -364,8 +528,22 @@ export default {
           timestamp: timestamp // 添加时间戳参数防止缓存
         });
         
+        console.log('静默刷新房间数据响应:', response);
+        
         if (response?.code === 200) {
-          const roomData = Array.isArray(response?.data) ? response.data : [];
+          // 处理分页响应
+          let roomData = Array.isArray(response?.data) ? response.data : [];
+          
+          // 如果有分页信息，则使用records作为数据，并设置总数
+          if (response.data && typeof response.data === 'object' && 'records' in response.data) {
+            roomData = response.data.records;
+            this.totalRooms = response.data.total || 0;
+            console.log('静默刷新分页响应 - 记录数:', roomData.length, '总数:', this.totalRooms);
+          } else {
+            // 兼容旧格式
+            this.totalRooms = roomData.length;
+          }
+          
           this.updateRoomsData(roomData);
         }
       } catch (error) {
@@ -498,6 +676,10 @@ export default {
 
 .filter-section {
   margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
 .rooms-grid {
@@ -505,6 +687,62 @@ export default {
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 20px;
+}
+
+/* 响应式布局 - 平板设备 */
+@media screen and (max-width: 1200px) {
+  .rooms-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 响应式布局 - 小型平板设备 */
+@media screen and (max-width: 768px) {
+  .rooms-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  .room-list-container {
+    padding: 15px;
+  }
+  
+  .filter-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* 响应式布局 - 手机设备 */
+@media screen and (max-width: 480px) {
+  .rooms-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .room-list-container {
+    padding: 10px;
+  }
+  
+  .room-card {
+    max-width: 100%;
+  }
+  
+  .room-image img {
+    height: 150px;
+  }
+  
+  .room-info {
+    padding: 12px;
+  }
+  
+  .room-info h3 {
+    font-size: 18px;
+  }
+  
+  .room-info p {
+    font-size: 13px;
+  }
 }
 
 .room-card {
@@ -558,5 +796,12 @@ export default {
   display: flex;
   justify-content: center;
   margin-top: 20px;
+}
+
+/* 手机端分页样式优化 */
+@media screen and (max-width: 480px) {
+  .pagination-section {
+    margin-top: 15px;
+  }
 }
 </style>
