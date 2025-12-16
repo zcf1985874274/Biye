@@ -1,4 +1,4 @@
-import { getRooms, getAvailableRooms } from '@/api/room'
+import { getRooms, getAvailableRooms, getRoomsByStoreId } from '@/api/room'
 import request from '@/utils/request'
 import store from '@/store'
 
@@ -21,9 +21,19 @@ const mutations = {
 const actions = {
   async fetchRooms({ commit }, params = {}) {
     try {
-      const { filterType = 'all', page = 1, size = 8 } = params
-      const api = filterType === 'all' ? getRooms : getAvailableRooms
-      const response = await api({ page, size })
+      const { filterType = 'all', page = 1, size = 8, storeId, ...otherParams } = params
+      let response;
+      let apiParams = { page, size, ...otherParams };
+      
+      // 根据是否有storeId和filterType选择合适的API
+      if (storeId) {
+        // 有storeId时，使用getRoomsByStoreId API
+        response = await getRoomsByStoreId(storeId, apiParams);
+      } else {
+        // 没有storeId时，根据filterType选择API
+        const api = filterType === 'all' ? getRooms : getAvailableRooms;
+        response = await api(apiParams);
+      }
       
       if (response.code === 200) {
         const data = Array.isArray(response.data) ? response.data : []
@@ -103,9 +113,9 @@ const actions = {
   // 静默获取房间数据（用于轮询）
   async fetchRoomsSilently({ commit }, params = {}) {
     try {
-      const { filterType = 'all', page = 1, size = 8 } = params
+      const { filterType = 'all', page = 1, size = 8, ...otherParams } = params
       const api = filterType === 'all' ? getRooms : getAvailableRooms
-      const response = await api({ page, size })
+      const response = await api({ page, size, ...otherParams }) // 传递所有参数，包括timestamp
       
       if (response.code === 200) {
         const data = Array.isArray(response.data) ? response.data : []

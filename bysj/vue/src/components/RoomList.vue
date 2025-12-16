@@ -92,7 +92,7 @@ export default {
       selectedRoom: null,
       totalRooms: 0,
       pollingTimer: null, // 定时器
-      pollingInterval: 10000, // 10秒轮询一次
+      pollingInterval: 3000, // 3秒轮询一次，提高实时性
       isVisible: true, // 页面是否可见
       roomStatusListenerId: `RoomList_${Date.now()}`, // 唯一监听器ID
     }
@@ -272,7 +272,8 @@ export default {
           url: '/api/usage-records',
           method: 'post',
           headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Cache-Control': 'no-cache'
           },
           data: {
             roomId: bookingInfo.roomId,
@@ -292,6 +293,9 @@ export default {
         const updateResponse = await request({
           url: `/api/rooms/${bookingInfo.roomId}/status`,
           method: 'patch',
+          headers: {
+            'Cache-Control': 'no-cache'
+          },
           data: {
             status: '使用中'
           }
@@ -301,11 +305,17 @@ export default {
           throw new Error(updateResponse?.message || '更新房间状态失败');
         }
 
-        // 5. 刷新房间列表
+        // 5. 立即刷新房间列表，确保获取最新状态
         await this.fetchRooms();
         
         // 6. 通知其他用户更新房间状态
         this.notifyRoomStatusUpdate(bookingInfo.roomId, '使用中');
+        
+        // 7. 额外确保本地房间数据立即更新（避免轮询延迟）
+        const updatedRoomIndex = this.rooms.findIndex(r => r.roomId === bookingInfo.roomId);
+        if (updatedRoomIndex !== -1) {
+          this.$set(this.rooms[updatedRoomIndex], 'status', 'occupied');
+        }
 
         this.$message.success(`房间预订成功! 总费用: ¥${bookingInfo.totalPrice}`);
       } catch (error) {
@@ -341,26 +351,25 @@ export default {
     // 静默刷新房间数据（不显示加载状态）
     async fetchRoomsSilently() {
       try {
-        if (this.selectedStoreId) {
-          await getRoomsByStoreId(this.selectedStoreId).then(response => {
-            const roomData = Array.isArray(response?.data) ? response.data : []
-            this.updateRoomsData(roomData)
-          })
-        } else {
-          const { filterType, currentPage: page, pageSize: size } = this
-          const response = await this.$store.dispatch('room/fetchRooms', {
-            filterType,
-            page,
-            size
-          })
-          
-          if (response?.code === 200) {
-            const roomData = Array.isArray(response?.data) ? response.data : []
-            this.updateRoomsData(roomData)
-          }
+        // 添加随机参数防止浏览器缓存
+        const timestamp = new Date().getTime();
+        const { filterType, currentPage: page, pageSize: size } = this;
+        
+        // 统一使用Vuex dispatch获取数据，确保数据一致性
+        const response = await this.$store.dispatch('room/fetchRooms', {
+          filterType,
+          page,
+          size,
+          storeId: this.selectedStoreId, // 传递门店ID
+          timestamp: timestamp // 添加时间戳参数防止缓存
+        });
+        
+        if (response?.code === 200) {
+          const roomData = Array.isArray(response?.data) ? response.data : [];
+          this.updateRoomsData(roomData);
         }
       } catch (error) {
-        console.warn('静默刷新房间数据失败:', error)
+        console.warn('静默刷新房间数据失败:', error);
       }
     },
 

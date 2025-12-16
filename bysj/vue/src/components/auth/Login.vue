@@ -162,13 +162,17 @@ export default {
 
       this.loading = true
       this.$store
-        .dispatch('user/login', this.loginForm)
-        .then(() => {
-          this.$message.success('登录成功')
-          // 获取重定向地址或默认跳转到首页
-          const redirect = this.$route.query.redirect || '/home'
-          this.$router.push(redirect)
-        })
+          .dispatch('user/login', this.loginForm)
+          .then(() => {
+            // 登录成功后获取用户信息
+            return this.$store.dispatch('user/getUserInfo')
+          })
+          .then(() => {
+            this.$message.success('登录成功')
+            // 获取重定向地址或默认跳转到首页
+            const redirect = this.$route.query.redirect || '/home'
+            this.$router.push(redirect)
+          })
         .catch(error => {
           this.$message.error(error.message || '登录失败')
           this.generateCaptcha() // 登录失败后重新生成验证码

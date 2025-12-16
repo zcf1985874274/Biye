@@ -2,6 +2,7 @@ package com.example.springboot.controller;
 
 import com.example.springboot.model.UsageRecord;
 import com.example.springboot.service.UsageRecordService;
+import com.example.springboot.service.RoomService;
 import com.example.springboot.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +30,9 @@ public class UsageRecordController {
     
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private RoomService roomService;
     @Operation(summary = "获取所有使用记录")
     @GetMapping
     public ResponseEntity<Map<String, Object>> findAll() {
@@ -166,6 +170,7 @@ public class UsageRecordController {
             System.out.println("storeId: " + usageRecord.getStoreId());
             System.out.println("startTime: " + usageRecord.getStartTime());
             System.out.println("endTime: " + usageRecord.getEndTime());
+            System.out.println("paymentId: " + usageRecord.getPaymentId());
             
             // 验证必要字段（包括 storeId）
             if (usageRecord.getRoomId() == null || usageRecord.getUserId() == null
@@ -182,7 +187,14 @@ public class UsageRecordController {
             // 时间字段已经是Timestamp类型，无需转换
             // 如果需要验证时间格式，可以在这里添加验证逻辑
             
+            // 创建使用记录
             int result = usageRecordService.save(usageRecord);
+            
+            // 更新对应房间状态为"使用中"
+            if (usageRecord.getRoomId() != null) {
+                roomService.updateRoomStatus(usageRecord.getRoomId(), "使用中");
+            }
+            
             // 清除相关缓存
             clearUsageRecordCache(usageRecord.getUserId(), usageRecord.getRoomId(), usageRecord.getStoreId());
             

@@ -1,5 +1,6 @@
 package com.example.springboot.model;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 public class User {
@@ -11,6 +12,7 @@ public class User {
     private Date registrationDate;
     private Date lastLogin;
     private String status;
+    private BigDecimal balance;
 
     // Getters and Setters
     public Integer getUserId() {
@@ -75,5 +77,13 @@ public class User {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 }

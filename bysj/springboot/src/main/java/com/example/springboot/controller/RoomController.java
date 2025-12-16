@@ -106,7 +106,7 @@ public class RoomController {
     }
 
     @PatchMapping("/{id}/status")
-    @Operation(summary = "更新房间状态", description = "更新棋牌室房间的状态（如可用/不可用）")
+    @Operation(summary = "更新房间状态", description = "更新棋牌室房间的状态（如空闲/使用中）")
     public Result<?> updateRoomStatus(
             @Parameter(description = "房间ID") @PathVariable Integer id,
             @RequestBody Map<String, String> requestBody) {

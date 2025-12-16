@@ -46,7 +46,8 @@ public class SecurityConfig {
                     "/api/admins/login",
                     "/api/user/check-username",
                     "/api/user/verify-phone",
-                    "/api/user/reset-password"
+                    "/api/user/reset-password",
+                    "/api/payments/alipay/*/status"
                 ).permitAll()
                 .requestMatchers("/api/**").authenticated()
 

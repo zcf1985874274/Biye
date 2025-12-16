@@ -303,4 +303,41 @@ public class UserController {
         
         return result;
     }
+
+    /**
+     * 更新用户余额
+     * @param data 包含用户ID和新余额的请求体
+     * @return 更新结果
+     */
+    @PostMapping("/update-balance")
+    @Operation(summary = "更新用户余额", description = "管理员更新用户账户余额")
+    public Result<Void> updateUserBalance(@RequestBody Map<String, Object> data) {
+        Integer userId = (Integer) data.get("userId");
+        Double balance = (Double) data.get("balance");
+        
+        if (userId == null || balance == null) {
+            return Result.error("参数不完整");
+        }
+        
+        // 查找用户
+        User user = userService.findById(userId);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        
+        // 更新余额
+        user.setBalance(java.math.BigDecimal.valueOf(balance));
+        Result<Void> result = userService.updateUser(user);
+        
+        if (result.getCode() == 200) {
+            // 清除相关缓存
+            redisTemplate.delete("users:all");
+            redisTemplate.delete("users:id:" + userId);
+            if (user.getUsername() != null) {
+                redisTemplate.delete("users:info:" + user.getUsername());
+            }
+        }
+        
+        return result;
+    }
 }

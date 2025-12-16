@@ -27,21 +27,39 @@ service.interceptors.request.use(
       config.url.includes('/api/user/reset-password')
     )
     
-    // 只有非忘记密码接口才添加token
-    if (!isForgotPasswordApi) {
-      // 添加token - 优先检查管理员token
-      const adminToken = store.getters.adminToken
-      const userToken = store.getters.token
-      
-      if (adminToken) {
-        config.headers['Authorization'] = 'Bearer ' + adminToken
-        console.log('使用管理员token:', adminToken.substring(0, 20) + '...')
-      } else if (userToken) {
-        config.headers['Authorization'] = 'Bearer ' + userToken
-        console.log('使用用户token:', userToken.substring(0, 20) + '...')
-      } else {
-        console.log('未找到token，请求可能未授权')
-      }
+    // 检查是否是支付宝回调接口，这个接口不需要token
+    const isAlipayCallbackApi = config.url && (
+      config.url.includes('/api/payments/alipay/') && config.url.includes('/status')
+    )
+
+      if (!isForgotPasswordApi && !isAlipayCallbackApi) {
+          // 判断请求路径以决定使用哪个token
+          const isAdminApi = config.url && config.url.includes('/api/admin')
+          const isLoginApi = config.url && config.url.includes('/login')
+          const currentPath = router.currentRoute.path
+
+          // 如果是登录接口，不添加任何token
+          if (isLoginApi) {
+              console.log('登录接口，不添加token')
+          } else if (isAdminApi || currentPath.startsWith('/admin')) {
+              // 管理员API或在管理员页面，使用管理员token
+              const adminToken = store.getters.adminToken
+              if (adminToken) {
+                  config.headers['Authorization'] = 'Bearer ' + adminToken
+                  console.log('使用管理员token:', adminToken.substring(0, 20) + '...')
+              } else {
+                  console.log('管理员操作但未找到管理员token')
+              }
+          } else {
+              // 普通用户API，使用用户token
+              const userToken = store.getters.token
+              if (userToken) {
+                  config.headers['Authorization'] = 'Bearer ' + userToken
+                  console.log('使用用户token:', userToken.substring(0, 20) + '...')
+              } else {
+                  console.log('用户操作但未找到用户token')
+              }
+          }
     } else {
       console.log('忘记密码接口，不添加token')
     }

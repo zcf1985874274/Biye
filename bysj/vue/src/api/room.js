@@ -89,13 +89,14 @@ export function deleteRoom(roomId) {
   })
 }
 
-export function getRoomsByStoreId(storeId) {
+export function getRoomsByStoreId(storeId, params = {}) {
   if (!storeId) {
     return Promise.reject({ message: 'storeId is required' });
   }
   return request({
     url: `/api/rooms/store/${storeId}`,
-    method: 'get'
+    method: 'get',
+    params
   }).then(response => {
     return {
       code: response.data?.code || 200,

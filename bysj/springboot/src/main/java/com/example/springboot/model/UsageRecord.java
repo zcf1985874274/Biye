@@ -1,17 +1,21 @@
 package com.example.springboot.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.sql.Timestamp;
 
 public class UsageRecord {
     private Integer recordId;
     private Integer roomId;
     private Integer userId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private Timestamp startTime;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private Timestamp endTime;
     private Double totalPrice;
     private String roomName;
     private Integer roomPassword;
     private Integer storeId;
+    private Integer paymentId;
 
     public String getStoreName() {
         return storeName;
@@ -92,5 +96,13 @@ public class UsageRecord {
 
     public void setRoomPassword(Integer roomPassword) {
         this.roomPassword = roomPassword;
+    }
+
+    public Integer getPaymentId() {
+        return paymentId;
+    }
+
+    public void setPaymentId(Integer paymentId) {
+        this.paymentId = paymentId;
     }
 }

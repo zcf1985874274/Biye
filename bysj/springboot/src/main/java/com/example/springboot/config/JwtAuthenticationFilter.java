@@ -1,6 +1,8 @@
 package com.example.springboot.config;
 
 import com.example.springboot.util.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,9 +19,45 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    
+    // 允许匿名访问的路径列表，与SecurityConfig保持一致
+    private final List<String> anonymousPaths = List.of(
+            "/api/user/login", 
+            "/api/user/register",
+            "/api/admins/login",
+            "/api/user/check-username",
+            "/api/user/verify-phone",
+            "/api/user/reset-password",
+            "/api/payments/alipay/*/status"
+    );
+    
+    /**
+     * 检查请求路径是否允许匿名访问
+     * @param requestUri 请求路径
+     * @return 是否允许匿名访问
+     */
+    private boolean isAnonymousPath(String requestUri) {
+        for (String path : anonymousPaths) {
+            // 处理通配符路径
+            if (path.contains("*")) {
+                String pattern = path.replace("*", ".*");
+                if (requestUri.matches(pattern)) {
+                    return true;
+                }
+            } else {
+                if (requestUri.equals(path)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -35,6 +73,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        
+        // 获取请求路径
+        String requestUri = request.getRequestURI();
+        
+        // 检查是否是允许匿名访问的路径，如果是，直接跳过JWT验证
+        if (isAnonymousPath(requestUri)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         final String authorizationHeader = request.getHeader("Authorization");
 
@@ -68,13 +115,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             // 根据请求路径选择使用哪个DetailsService
-            String requestUri = request.getRequestURI();
+           requestUri = request.getRequestURI();
             logger.info("处理JWT认证，用户: " + username + ", 请求路径: " + requestUri);
             UserDetailsService detailsService = null;
             
             // 优先匹配普通用户路径（更具体的路径优先）
+            // 普通用户支付宝支付相关路径 - 移到前面优先处理
+            if (requestUri.startsWith("/api/alipay/pay/") || requestUri.startsWith("/api/alipay/status/") || requestUri.equals("/api/payments/notify")) {
+                detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理用户支付宝支付相关请求");
+            }
             // 普通用户修改自己的信息
-            if (requestUri.equals("/api/user/self")) {
+            else if (requestUri.equals("/api/user/self")) {
                 detailsService = userDetailsService;
                 logger.info("使用userDetailsService处理用户自己信息修改");
             }
@@ -88,18 +140,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 detailsService = userDetailsService;
                 logger.info("使用userDetailsService处理用户ID查询记录");
             }
+            // 普通用户创建使用记录
+            else if (requestUri.equals("/api/usage-records") && "POST".equals(request.getMethod())) {
+                detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理用户创建使用记录");
+            }
             // 普通用户和管理员都可以访问的路径
             else if (requestUri.equals("/api/stores") || 
                      requestUri.equals("/api/rooms") ||
                      requestUri.startsWith("/api/rooms/available") ||
                      requestUri.equals("/api/usage-records")) {
                 // 首先尝试使用userDetailsService（普通用户）
-                try {
-                    detailsService = userDetailsService;
-                    logger.info("尝试使用userDetailsService加载用户: " + username);
-                } catch (Exception e) {
-                    logger.error("设置userDetailsService失败: " + e.getMessage());
-                }
+                detailsService = userDetailsService;
+                logger.info("使用userDetailsService处理普通用户请求");
             }
             // 管理员相关路径使用adminDetailsService
             else if (requestUri.startsWith("/api/admins")) {

@@ -1,5 +1,8 @@
 package com.example.springboot.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LoginDTO {
     private String username;
     private String password;

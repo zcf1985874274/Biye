@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -39,6 +40,8 @@ public class UserServiceImpl implements UserService {
         user.setRegistrationDate(new Date());
         user.setLastLogin(new Date());
         user.setStatus("未登录");
+        // 初始化余额为0
+        user.setBalance(BigDecimal.ZERO);
 
         // 保存用户
         userMapper.insert(user);

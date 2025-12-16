@@ -134,6 +134,11 @@ public class RoomServiceImpl implements RoomService {
             if (result == 0) {
                 return Result.error("更新房间状态失败");
             }
+            
+            // 清除Redis缓存
+            redisTemplate.delete("rooms:all");
+            redisTemplate.delete("rooms:id:" + roomId);
+            
             return Result.success();
         } catch (Exception e) {
             return Result.error("更新房间状态失败: " + e.getMessage());

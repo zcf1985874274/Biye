@@ -12,14 +12,15 @@
         <result column="registration_date" property="registrationDate" />
         <result column="last_login" property="lastLogin" />
         <result column="status" property="status" />
+        <result column="balance" property="balance" />
     </resultMap>
 
     <!-- 插入新用户 -->
     <insert id="insert" parameterType="com.example.springboot.model.User" useGeneratedKeys="true" keyProperty="userId">
         INSERT INTO users (
-            username, password, email, phone, registration_date, last_login, status
+            username, password, email, phone, registration_date, last_login, status, balance
         ) VALUES (
-            #{username}, #{password}, #{email}, #{phone}, #{registrationDate}, #{lastLogin}, #{status}
+            #{username}, #{password}, #{email}, #{phone}, #{registrationDate}, #{lastLogin}, #{status}, #{balance}
         )
     </insert>
 
@@ -48,6 +49,7 @@
             <if test="phone != null">phone = #{phone},</if>
             <if test="status != null">status = #{status},</if>
             <if test="lastLogin != null">last_login = #{lastLogin},</if>
+            <if test="balance != null">balance = #{balance},</if>
         </set>
         WHERE user_id = #{userId}
     </update>
